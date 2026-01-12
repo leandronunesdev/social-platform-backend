@@ -2,8 +2,6 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-export { prisma };
-
 const findByEmailOrUsername = async (email: string, username: string) => {
   return prisma.userAccount.findFirst({
     where: {
