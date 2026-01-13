@@ -25,6 +25,12 @@ const registerAccount = async (req: Request, res: Response) => {
       // Use the 'issues' array for detailed validation errors
       return res.status(400).json({ errors: error.issues });
     } else if (error instanceof Error) {
+      // Check for duplicate user error
+      if (error.message === "Username or email already exists") {
+        return res
+          .status(409)
+          .json({ message: "Username or email already exists." });
+      }
       console.error("Internal Server Error:", error.message);
       return res.status(500).json({ message: "Internal server error." });
     } else {

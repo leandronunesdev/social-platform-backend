@@ -1,6 +1,17 @@
+import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import pg from "pg";
 
-const prisma = new PrismaClient();
+const { Client } = pg;
+
+const adapter = new PrismaPg(
+  new Client({
+    connectionString: process.env.DATABASE_URL,
+  })
+);
+
+const prisma = new PrismaClient({ adapter });
 
 const findByEmailOrUsername = async (email: string, username: string) => {
   return prisma.userAccount.findFirst({
