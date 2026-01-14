@@ -2,7 +2,6 @@ import { Request, Response } from "express";
 import { authService } from "../services/authService";
 import { z } from "zod";
 
-// Zod validation schema for account registration
 const RegisterAccountSchema = z.object({
   name: z.string().min(1, "Name is required."),
   username: z.string().min(3, "Username must be at least 3 characters long."),
@@ -12,20 +11,18 @@ const RegisterAccountSchema = z.object({
 
 const registerAccount = async (req: Request, res: Response) => {
   try {
-    // Validate input using Zod
     const validatedData = RegisterAccountSchema.parse(req.body);
 
-    // Delegate to the service layer
-    await authService.registerAccount(validatedData);
+    const result = await authService.registerAccount(validatedData);
 
-    // Return success response
-    res.status(201).json({ message: "Account created successfully." });
+    res.status(201).json({
+      message: "Account created successfully.",
+      userAccountId: result.userAccountId,
+    });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      // Use the 'issues' array for detailed validation errors
       return res.status(400).json({ errors: error.issues });
     } else if (error instanceof Error) {
-      // Check for duplicate user error
       if (error.message === "Username or email already exists") {
         return res
           .status(409)
@@ -40,4 +37,41 @@ const registerAccount = async (req: Request, res: Response) => {
   }
 };
 
-export const authController = { registerAccount };
+const UpdateProfileSchema = z.object({
+  userAccountId: z.string().cuid("Invalid user account ID."),
+  bio: z.string().max(160, "Bio must be less than 160 characters.").optional(),
+  country: z
+    .string()
+    .max(50, "Country must be less than 50 characters.")
+    .optional(),
+  state: z
+    .string()
+    .max(50, "State must be less than 50 characters.")
+    .optional(),
+  city: z.string().max(50, "City must be less than 50 characters.").optional(),
+  avatarUrl: z.string().url("Invalid avatar URL.").optional(),
+});
+
+const updateProfile = async (req: Request, res: Response) => {
+  try {
+    const validatedData = UpdateProfileSchema.parse(req.body);
+    await authService.updateProfile(validatedData);
+
+    res.status(200).json({ message: "Profile updated successfully." });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ errors: error.issues });
+    } else if (error instanceof Error) {
+      if (error.message === "User profile not found") {
+        return res.status(404).json({ message: "User profile not found." });
+      }
+      console.error("Internal Server Error:", error.message);
+      return res.status(500).json({ message: "Internal server error." });
+    } else {
+      console.error("Unexpected error:", error);
+      return res.status(500).json({ message: "An unexpected error occurred." });
+    }
+  }
+};
+
+export const authController = { registerAccount, updateProfile };
