@@ -20,5 +20,5 @@
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force"
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "node_modules/@prisma/client"]
 }
