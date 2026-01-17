@@ -43,7 +43,6 @@ const registerAccount = async ({
 };
 
 export type UpdateProfileParams = {
-  userAccountId: string;
   bio?: string | undefined;
   country?: string | undefined;
   state?: string | undefined;
@@ -51,14 +50,10 @@ export type UpdateProfileParams = {
   avatarUrl?: string | undefined;
 };
 
-const updateProfile = async ({
-  userAccountId,
-  bio,
-  country,
-  state,
-  city,
-  avatarUrl,
-}: UpdateProfileParams) => {
+const updateProfile = async (
+  userAccountId: string,
+  { bio, country, state, city, avatarUrl }: UpdateProfileParams
+) => {
   const userProfile = await userRepository.findUserProfile(userAccountId);
 
   if (!userProfile) {

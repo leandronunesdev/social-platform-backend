@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { authService } from "../services/authService";
 import { z } from "zod";
+import { AuthenticatedRequest } from "../middlewares/authMiddleware";
 
 const RegisterAccountSchema = z.object({
   name: z.string().min(1, "Name is required."),
@@ -17,7 +18,6 @@ const registerAccount = async (req: Request, res: Response) => {
 
     res.status(201).json({
       message: "Account created successfully.",
-      userAccountId: result.userAccountId,
       token: result.token,
     });
   } catch (error) {
@@ -39,7 +39,6 @@ const registerAccount = async (req: Request, res: Response) => {
 };
 
 const UpdateProfileSchema = z.object({
-  userAccountId: z.string().cuid("Invalid user account ID."),
   bio: z.string().max(160, "Bio must be less than 160 characters.").optional(),
   country: z
     .string()
@@ -53,10 +52,17 @@ const UpdateProfileSchema = z.object({
   avatarUrl: z.string().url("Invalid avatar URL.").optional(),
 });
 
-const updateProfile = async (req: Request, res: Response) => {
+const updateProfile = async (req: AuthenticatedRequest, res: Response) => {
   try {
+    // Extract userAccountId from authenticated request (set by auth middleware)
+    const userAccountId = req.userId;
+
+    if (!userAccountId) {
+      return res.status(401).json({ message: "Authentication required." });
+    }
+
     const validatedData = UpdateProfileSchema.parse(req.body);
-    await authService.updateProfile(validatedData);
+    await authService.updateProfile(userAccountId, validatedData);
 
     res.status(200).json({ message: "Profile updated successfully." });
   } catch (error) {
