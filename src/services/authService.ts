@@ -1,5 +1,6 @@
 import bcrypt from "bcrypt";
 import { userRepository } from "../repositories/userRepository";
+import { generateToken } from "../utils/jwt";
 
 type RegisterAccountParams = {
   name: string;
@@ -33,7 +34,12 @@ const registerAccount = async ({
 
   await userRepository.createUserProfile(userAccount.id);
 
-  return { userAccountId: userAccount.id };
+  const token = generateToken({
+    userId: userAccount.id,
+    email: userAccount.email,
+  });
+
+  return { userAccountId: userAccount.id, token };
 };
 
 export type UpdateProfileParams = {
@@ -68,4 +74,30 @@ const updateProfile = async ({
   });
 };
 
-export const authService = { registerAccount, updateProfile };
+type LoginParams = {
+  email: string;
+  password: string;
+};
+
+const login = async ({ email, password }: LoginParams) => {
+  const userAccount = await userRepository.findByEmail(email);
+
+  if (!userAccount) {
+    throw new Error("Invalid email or password");
+  }
+
+  const isPasswordValid = await bcrypt.compare(password, userAccount.password);
+
+  if (!isPasswordValid) {
+    throw new Error("Invalid email or password");
+  }
+
+  const token = generateToken({
+    userId: userAccount.id,
+    email: userAccount.email,
+  });
+
+  return { userAccountId: userAccount.id, token };
+};
+
+export const authService = { registerAccount, updateProfile, login };

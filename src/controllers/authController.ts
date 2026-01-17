@@ -18,6 +18,7 @@ const registerAccount = async (req: Request, res: Response) => {
     res.status(201).json({
       message: "Account created successfully.",
       userAccountId: result.userAccountId,
+      token: result.token,
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -74,4 +75,36 @@ const updateProfile = async (req: Request, res: Response) => {
   }
 };
 
-export const authController = { registerAccount, updateProfile };
+const LoginSchema = z.object({
+  email: z.string().email("Invalid email address."),
+  password: z.string().min(1, "Password is required."),
+});
+
+const login = async (req: Request, res: Response) => {
+  try {
+    const validatedData = LoginSchema.parse(req.body);
+
+    const result = await authService.login(validatedData);
+
+    res.status(200).json({
+      message: "Login successful.",
+      userAccountId: result.userAccountId,
+      token: result.token,
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ errors: error.issues });
+    } else if (error instanceof Error) {
+      if (error.message === "Invalid email or password") {
+        return res.status(401).json({ message: "Invalid email or password." });
+      }
+      console.error("Internal Server Error:", error.message);
+      return res.status(500).json({ message: "Internal server error." });
+    } else {
+      console.error("Unexpected error:", error);
+      return res.status(500).json({ message: "An unexpected error occurred." });
+    }
+  }
+};
+
+export const authController = { registerAccount, updateProfile, login };

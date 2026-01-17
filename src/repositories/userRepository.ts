@@ -19,6 +19,14 @@ const findByEmailOrUsername = async (email: string, username: string) => {
   });
 };
 
+const findByEmail = async (email: string) => {
+  return prisma.userAccount.findUnique({
+    where: {
+      email,
+    },
+  });
+};
+
 const createUserAccount = async (data: {
   name: string;
   username: string;
@@ -90,6 +98,7 @@ const updateUserProfile = async (
 
 const userRepository = {
   findByEmailOrUsername,
+  findByEmail,
   createUserAccount,
   createUserProfile,
   findUserProfile,
