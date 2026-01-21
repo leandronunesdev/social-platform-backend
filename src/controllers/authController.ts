@@ -10,6 +10,61 @@ const RegisterAccountSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters long."),
 });
 
+/**
+ * @swagger
+ * /api/auth/registerAccount:
+ *   post:
+ *     summary: Register a new user account
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - username
+ *               - email
+ *               - password
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 minLength: 1
+ *                 example: "John Doe"
+ *               username:
+ *                 type: string
+ *                 minLength: 3
+ *                 example: "johndoe"
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: "john@example.com"
+ *               password:
+ *                 type: string
+ *                 minLength: 8
+ *                 example: "password123"
+ *     responses:
+ *       201:
+ *         description: Account created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Account created successfully."
+ *                 token:
+ *                   type: string
+ *                   example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ *       400:
+ *         description: Validation error
+ *       409:
+ *         description: Username or email already exists
+ *       500:
+ *         description: Internal server error
+ */
 const registerAccount = async (req: Request, res: Response) => {
   try {
     const validatedData = RegisterAccountSchema.parse(req.body);
@@ -52,6 +107,61 @@ const UpdateProfileSchema = z.object({
   avatarUrl: z.string().url("Invalid avatar URL.").optional(),
 });
 
+/**
+ * @swagger
+ * /api/auth/updateProfile:
+ *   put:
+ *     summary: Update user profile
+ *     tags: [Profile]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               bio:
+ *                 type: string
+ *                 maxLength: 160
+ *                 example: "Software developer passionate about clean code"
+ *               country:
+ *                 type: string
+ *                 maxLength: 50
+ *                 example: "United States"
+ *               state:
+ *                 type: string
+ *                 maxLength: 50
+ *                 example: "California"
+ *               city:
+ *                 type: string
+ *                 maxLength: 50
+ *                 example: "San Francisco"
+ *               avatarUrl:
+ *                 type: string
+ *                 format: uri
+ *                 example: "https://example.com/avatar.jpg"
+ *     responses:
+ *       200:
+ *         description: Profile updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Profile updated successfully."
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Authentication required or invalid token
+ *       404:
+ *         description: User profile not found
+ *       500:
+ *         description: Internal server error
+ */
 const updateProfile = async (req: AuthenticatedRequest, res: Response) => {
   try {
     // Extract userAccountId from authenticated request (set by auth middleware)
@@ -86,6 +196,50 @@ const LoginSchema = z.object({
   password: z.string().min(1, "Password is required."),
 });
 
+/**
+ * @swagger
+ * /api/auth/login:
+ *   post:
+ *     summary: Login with email and password
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: "john@example.com"
+ *               password:
+ *                 type: string
+ *                 example: "password123"
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Login successful."
+ *                 token:
+ *                   type: string
+ *                   example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Invalid email or password
+ *       500:
+ *         description: Internal server error
+ */
 const login = async (req: Request, res: Response) => {
   try {
     const validatedData = LoginSchema.parse(req.body);
@@ -94,7 +248,6 @@ const login = async (req: Request, res: Response) => {
 
     res.status(200).json({
       message: "Login successful.",
-      userAccountId: result.userAccountId,
       token: result.token,
     });
   } catch (error) {
