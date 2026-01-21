@@ -20,7 +20,10 @@
     "dev": "nodemon",
     "build": "tsc",
     "start": "node dist/server.js",
-    "lint": "eslint src --ext . ts"
+    "lint": "eslint src --ext . ts",
+    "type-check": "tsc --noEmit",
+    "prisma:validate": "prisma validate",
+    "prisma:generate": "prisma generate"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.2.0",
