@@ -62,13 +62,17 @@ Server runs at `http://localhost:4000`
 
 ## Available Scripts
 
-| Command      | Purpose                                  |
-| ------------ | ---------------------------------------- |
-| `yarn dev`   | Start development server with hot reload |
-| `yarn build` | Compile TypeScript to JavaScript         |
-| `yarn start` | Run production build                     |
-| `yarn test`  | Run unit tests (Week 3)                  |
-| `yarn lint`  | Check code quality (optional)            |
+| Command                    | Purpose                                  |
+| -------------------------- | ---------------------------------------- |
+| `yarn dev`                 | Start development server with hot reload |
+| `yarn build`               | Compile TypeScript to JavaScript         |
+| `yarn start`               | Run production build                     |
+| `yarn type-check`          | Type check without building              |
+| `yarn prisma:generate`     | Generate Prisma Client                   |
+| `yarn prisma:migrate`      | Run database migrations                  |
+| `yarn docker:build`        | Build production Docker image            |
+| `yarn docker:compose:up`   | Start services with Docker Compose       |
+| `yarn docker:compose:down` | Stop Docker Compose services             |
 
 ---
 
@@ -137,11 +141,65 @@ See `.env.example` for required variables.
 
 ---
 
+## Docker
+
+### Development
+
+Start database and backend with Docker Compose:
+
+```bash
+# Start all services
+docker compose up -d
+
+# View logs
+docker compose logs -f backend
+
+# Stop services
+docker compose down
+```
+
+### Production Build
+
+Build and run the production Docker image:
+
+```bash
+# Build image
+yarn docker:build
+
+# Run with environment file
+yarn docker:run
+
+# Or use docker-compose for production
+docker compose -f docker-compose.prod.yml up -d
+```
+
+### Running Migrations in Docker
+
+```bash
+# After containers are running
+docker compose exec backend yarn prisma migrate deploy
+
+# Or use the migration script
+./scripts/migrate.sh
+```
+
+### Docker Commands
+
+| Command                    | Purpose                         |
+| -------------------------- | ------------------------------- |
+| `yarn docker:build`        | Build production Docker image   |
+| `yarn docker:run`          | Run container locally           |
+| `yarn docker:compose:up`   | Start all services with compose |
+| `yarn docker:compose:down` | Stop all services               |
+
+---
+
 ## Deployment (Week 5)
 
 - **Platform:** AWS (EC2 or ECS)
 - **Database:** AWS RDS PostgreSQL
 - **CI/CD:** GitHub Actions
+- **Containerization:** Docker
 
 ---
 
