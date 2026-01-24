@@ -194,12 +194,25 @@ docker compose exec backend yarn prisma migrate deploy
 
 ---
 
-## Deployment (Week 5)
+## AWS Deployment
 
-- **Platform:** AWS (EC2 or ECS)
-- **Database:** AWS RDS PostgreSQL
-- **CI/CD:** GitHub Actions
-- **Containerization:** Docker
+See [docs/aws-deployment.md](docs/aws-deployment.md) for complete deployment guide.
+
+**Quick Start:**
+
+1. Create RDS PostgreSQL database
+2. Launch EC2 instance
+3. Install Docker on EC2
+4. Clone repository and configure `.env.production`
+5. Run deployment script: `./scripts/deploy-aws.sh`
+
+**Architecture:**
+
+- **EC2** - Application server (Docker)
+- **RDS** - PostgreSQL database
+- **Security Groups** - Network security
+
+**Cost:** ~$0-15/month (using free tier)
 
 ---
 

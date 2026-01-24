@@ -9,9 +9,10 @@ import { swaggerSpec } from "./config/swagger";
 const app = express();
 
 // Enable CORS for frontend
+const corsOrigin = process.env.CORS_ORIGIN || "http://localhost:3000";
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: corsOrigin,
     credentials: true,
   })
 );
