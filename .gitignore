@@ -37,3 +37,4 @@ coverage/
 # Docker volumes (data should not be committed)
 postgres_data/
 study
+social-platform-backend-key.pem

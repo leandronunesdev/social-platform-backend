@@ -23,7 +23,12 @@
     "lint": "eslint src --ext . ts",
     "type-check": "tsc --noEmit",
     "prisma:validate": "prisma validate",
-    "prisma:generate": "prisma generate"
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate deploy",
+    "docker:build": "docker build -t social-platform-backend .",
+    "docker:run": "docker run -p 4000:4000 --env-file .env social-platform-backend",
+    "docker:compose:up": "docker compose up -d",
+    "docker:compose:down": "docker compose down"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.2.0",
