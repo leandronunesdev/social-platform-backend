@@ -24,13 +24,13 @@ fi
 export $(cat .env.production | grep -v '^#' | xargs)
 
 echo "📦 Building Docker image..."
-docker compose -f docker-compose.aws.yml --env-file .env.production build
+docker-compose -f docker-compose.aws.yml --env-file .env.production build
 
 echo "🗄️  Running database migrations..."
-docker compose -f docker-compose.aws.yml --env-file .env.production run --rm backend yarn prisma migrate deploy
+docker-compose -f docker-compose.aws.yml --env-file .env.production run --rm backend yarn prisma migrate deploy
 
 echo "🚀 Starting services..."
-docker compose -f docker-compose.aws.yml --env-file .env.production up -d
+docker-compose -f docker-compose.aws.yml --env-file .env.production up -d
 
 echo "⏳ Waiting for services to be healthy..."
 sleep 5
@@ -40,9 +40,9 @@ if curl -f http://localhost:4000/health > /dev/null 2>&1; then
     echo "✅ Deployment successful! Health check passed."
     echo "🌐 API is running at: http://$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4):4000"
 else
-    echo "⚠️  Health check failed. Check logs with: docker compose -f docker-compose.aws.yml logs backend"
+    echo "⚠️  Health check failed. Check logs with: docker-compose -f docker-compose.aws.yml logs backend"
     exit 1
 fi
 
-echo "📋 View logs with: docker compose -f docker-compose.aws.yml logs -f backend"
-echo "🛑 Stop services with: docker compose -f docker-compose.aws.yml down"
+echo "📋 View logs with: docker-compose -f docker-compose.aws.yml logs -f backend"
+echo "🛑 Stop services with: docker-compose -f docker-compose.aws.yml down"
