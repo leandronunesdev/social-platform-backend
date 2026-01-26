@@ -27,6 +27,7 @@
     "prisma:migrate": "prisma migrate deploy",
     "docker:build": "docker build -t social-platform-backend .",
     "docker:run": "docker run -p 4000:4000 --env-file .env social-platform-backend",
+    "docker:run:local": "docker run -p 4000:4000 --env-file .env.docker social-platform-backend",
     "docker:compose:up": "docker compose up -d",
     "docker:compose:down": "docker compose down"
   },

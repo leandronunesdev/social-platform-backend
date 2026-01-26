@@ -85,6 +85,9 @@ const registerAccount = async (req: Request, res: Response) => {
           .json({ message: "Username or email already exists." });
       }
       console.error("Internal Server Error:", error.message);
+      if (process.env.NODE_ENV !== "production") {
+        console.error(error.stack);
+      }
       return res.status(500).json({ message: "Internal server error." });
     } else {
       console.error("Unexpected error:", error);
@@ -183,6 +186,9 @@ const updateProfile = async (req: AuthenticatedRequest, res: Response) => {
         return res.status(404).json({ message: "User profile not found." });
       }
       console.error("Internal Server Error:", error.message);
+      if (process.env.NODE_ENV !== "production") {
+        console.error(error.stack);
+      }
       return res.status(500).json({ message: "Internal server error." });
     } else {
       console.error("Unexpected error:", error);
@@ -258,6 +264,9 @@ const login = async (req: Request, res: Response) => {
         return res.status(401).json({ message: "Invalid email or password." });
       }
       console.error("Internal Server Error:", error.message);
+      if (process.env.NODE_ENV !== "production") {
+        console.error(error.stack);
+      }
       return res.status(500).json({ message: "Internal server error." });
     } else {
       console.error("Unexpected error:", error);

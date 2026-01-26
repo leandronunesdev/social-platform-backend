@@ -1,7 +1,5 @@
 import "dotenv/config";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "../lib/prisma";
 
 const findByEmailOrUsername = async (email: string, username: string) => {
   return prisma.userAccount.findFirst({

@@ -23,9 +23,11 @@ services:
     container_name: social-platform-backend
     ports:
       - "4000:4000"
+    env_file:
+      - .env
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/social_platform_dev
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/social_platform_dev?schema=public
       - PORT=4000
     depends_on:
       postgres:
