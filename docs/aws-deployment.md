@@ -228,6 +228,38 @@ This requires more setup but provides better scalability.
 
 ---
 
+## Automatic Deployment with GitHub Actions
+
+Deploy to EC2 on every push to `main`.
+
+### 1. Add GitHub secrets
+
+Repo → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**:
+
+| Secret | Value |
+|--------|-------|
+| `EC2_HOST` | EC2 public IP (e.g. `3.138.179.130`) |
+| `EC2_SSH_PRIVATE_KEY` | Full contents of your `.pem` file (from `cat your-key.pem`) |
+
+### 2. EC2 and repo
+
+- EC2 has the repo in `~/social-platform-backend` and `origin` points at your GitHub repo.
+- `.env.production` exists on EC2 (it is not in the repo).
+- **Private repo:** use an SSH remote and a deploy key on EC2 so `git fetch` works without a password.
+
+### 3. Behaviour
+
+On **push to `main`**, the workflow will:
+
+1. SSH into EC2
+2. `cd ~/social-platform-backend`
+3. `git fetch origin` and `git reset --hard origin/main`
+4. Run `./scripts/deploy-aws.sh`
+
+Workflow file: `.github/workflows/deploy-aws.yml`
+
+---
+
 ## Post-Deployment Checklist
 
 - [ ] Database migrations run successfully
