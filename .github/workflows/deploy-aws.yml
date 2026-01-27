@@ -1,0 +1,29 @@
+# Deploy to EC2 on push to main
+# Requires GitHub secrets: EC2_HOST, EC2_SSH_PRIVATE_KEY
+
+name: Deploy to AWS
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key.pem
+          chmod 600 ~/.ssh/deploy_key.pem
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Deploy to EC2
+        run: |
+          ssh -i ~/.ssh/deploy_key.pem -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'ENDSSH'
+            set -e
+            cd ~/social-platform-backend || exit 1
+            git fetch origin
+            git reset --hard origin/main
+            ./scripts/deploy-aws.sh
+          ENDSSH
