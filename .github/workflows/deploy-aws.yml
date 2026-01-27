@@ -23,6 +23,10 @@ jobs:
           ssh -i ~/.ssh/deploy_key.pem -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'ENDSSH'
             set -e
             cd ~/social-platform-backend || exit 1
+            if [ ! -f .env.production ]; then
+              echo "::error ::.env.production not found on EC2. Create it: ssh to EC2, then nano ~/social-platform-backend/.env.production (see docs/env.production.template)"
+              exit 1
+            fi
             git fetch origin
             git reset --hard origin/main
             ./scripts/deploy-aws.sh
