@@ -19,7 +19,8 @@ app.use(
 
 app.use(express.json());
 
-// Swagger documentation
+// Swagger documentation (exact /api-docs.json before /api-docs prefix so it’s not handled by swagger-ui)
+app.get("/api-docs.json", (_req, res) => res.json(swaggerSpec));
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 import authRoutes from "./routes/authRoutes";
