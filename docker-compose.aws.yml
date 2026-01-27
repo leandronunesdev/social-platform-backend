@@ -4,9 +4,7 @@
 
 services:
   backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: social-platform-backend
     container_name: social-platform-backend
     environment:
       - NODE_ENV=production
