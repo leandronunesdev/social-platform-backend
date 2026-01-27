@@ -24,7 +24,7 @@ fi
 export $(cat .env.production | grep -v '^#' | xargs)
 
 echo "📦 Building Docker image..."
-docker-compose -f docker-compose.aws.yml --env-file .env.production build
+docker build -t social-platform-backend .
 
 echo "🗄️  Running database migrations..."
 docker-compose -f docker-compose.aws.yml --env-file .env.production run --rm backend yarn prisma migrate deploy
