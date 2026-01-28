@@ -25,6 +25,9 @@ if (fs.existsSync(path.join(root, "src", "controllers"))) {
   apis.push(...srcDirs, ...distDirs);
 }
 
+const apiBaseUrl =
+  process.env.API_BASE_URL || `http://localhost:${process.env.PORT || 4000}`;
+
 const options: swaggerJsdoc.Options = {
   definition: {
     openapi: "3.0.0",
@@ -38,8 +41,11 @@ const options: swaggerJsdoc.Options = {
     },
     servers: [
       {
-        url: "http://localhost:4000",
-        description: "Development server",
+        url: apiBaseUrl,
+        description:
+          process.env.NODE_ENV === "production"
+            ? "Production server"
+            : "Development server",
       },
     ],
     components: {
