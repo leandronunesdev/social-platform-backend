@@ -325,6 +325,18 @@ docker compose -f docker-compose.aws.yml up -d --build
 
 ## Troubleshooting
 
+**"client_loop: send disconnect: Broken pipe" or SSH drops during deploy:**
+
+- The SSH session from GitHub Actions to EC2 closed mid-build (often during `yarn install`). The workflow now uses `ServerAliveInterval` / `ServerAliveCountMax` to keep the connection alive.
+- **If it still happens:** Run the deploy manually on EC2 inside `tmux` or `screen` so it survives disconnects:
+  ```bash
+  ssh -i your-key.pem ec2-user@YOUR_EC2_IP
+  tmux new -s deploy
+  cd ~/social-platform-backend && git pull && ./scripts/deploy-aws.sh
+  # Detach: Ctrl+B, then D. Reattach later: tmux attach -t deploy
+  ```
+- **Long-term:** Build the Docker image in CI (e.g. push to ECR), then on EC2 only `docker pull` and restart. That shortens SSH usage and avoids build-time disk use on EC2.
+
 **"ENOSPC: no space left on device" or "file appears to be corrupt" during Docker build:**
 
 - The EC2 instance has run out of disk space. The deploy script now prunes unused Docker build cache and images before each build.
