@@ -23,6 +23,10 @@ fi
 # Load environment variables
 export $(cat .env.production | grep -v '^#' | xargs)
 
+echo "🧹 Freeing disk space (pruning unused Docker build cache and images)..."
+docker builder prune -af 2>/dev/null || true
+docker image prune -af 2>/dev/null || true
+
 echo "📦 Building Docker image..."
 docker build -t social-platform-backend .
 

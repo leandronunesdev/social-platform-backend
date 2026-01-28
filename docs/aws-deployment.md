@@ -5,12 +5,14 @@ Step-by-step guide to deploy the Social Platform Backend to AWS.
 ## Architecture Overview
 
 **Recommended Setup (MVP):**
+
 - **EC2** - Run Docker containers
 - **RDS PostgreSQL** - Managed database
 - **Security Groups** - Network security
 - **Elastic IP** - Static IP address (optional)
 
 **Alternative (More Scalable):**
+
 - **ECS/Fargate** - Container orchestration
 - **RDS PostgreSQL** - Managed database
 - **Application Load Balancer** - Load distribution
@@ -74,12 +76,13 @@ Step-by-step guide to deploy the Social Platform Backend to AWS.
          - HTTP (80) from Anywhere (0.0.0.0/0)
          - HTTPS (443) from Anywhere (0.0.0.0/0)
          - Custom TCP (4000) from Anywhere (for API, or restrict to your IP)
-   - **Storage**: 8 GB (free tier) or 20 GB
+   - **Storage**: **20 GB or more** (8 GB often leads to "no space left" during Docker builds)
 3. Click **Launch instance**
 
 ### Step 4: Connect to EC2 and Setup
 
 **Connect via SSH:**
+
 ```bash
 # Make key file executable
 chmod 400 your-key.pem
@@ -90,6 +93,7 @@ ssh -i your-key.pem ec2-user@YOUR_EC2_PUBLIC_IP
 ```
 
 **Install Docker on EC2:**
+
 ```bash
 # For Amazon Linux 2023
 sudo yum update -y
@@ -130,11 +134,13 @@ nano .env.production
 **Option B: Build and Push Docker Image**
 
 1. Build image locally:
+
 ```bash
 docker build -t social-platform-backend .
 ```
 
 2. Tag and push to Amazon ECR (or Docker Hub):
+
 ```bash
 # For Docker Hub
 docker tag social-platform-backend your-username/social-platform-backend:latest
@@ -142,6 +148,7 @@ docker push your-username/social-platform-backend:latest
 ```
 
 3. Pull on EC2:
+
 ```bash
 docker pull your-username/social-platform-backend:latest
 ```
@@ -149,11 +156,13 @@ docker pull your-username/social-platform-backend:latest
 ### Step 6: Configure Environment Variables
 
 Create `.env.production` on EC2:
+
 ```bash
 nano .env.production
 ```
 
 Add:
+
 ```env
 NODE_ENV=production
 DATABASE_URL=postgresql://postgres:YOUR_RDS_PASSWORD@YOUR_RDS_ENDPOINT:5432/social_platform
@@ -176,6 +185,7 @@ JWT_EXPIRES_IN=30m
 ### Step 8: Run Migrations and Deploy
 
 **Option A: Use deployment script (Recommended)**
+
 ```bash
 # On EC2
 cd social-platform-backend
@@ -188,6 +198,7 @@ chmod +x scripts/deploy-aws.sh
 ```
 
 **Option B: Manual deployment**
+
 ```bash
 # On EC2
 cd social-platform-backend
@@ -219,6 +230,7 @@ curl http://localhost:4000/health
 ## Option 2: ECS/Fargate (More Scalable)
 
 For production at scale, consider:
+
 - **ECS with Fargate** - Serverless containers
 - **Application Load Balancer** - Distribute traffic
 - **RDS** - Managed database
@@ -236,9 +248,9 @@ Deploy to EC2 on every push to `main`.
 
 Repo → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**:
 
-| Secret | Value |
-|--------|-------|
-| `EC2_HOST` | EC2 public IP (e.g. `3.138.179.130`) |
+| Secret                | Value                                                       |
+| --------------------- | ----------------------------------------------------------- |
+| `EC2_HOST`            | EC2 public IP (e.g. `3.138.179.130`)                        |
 | `EC2_SSH_PRIVATE_KEY` | Full contents of your `.pem` file (from `cat your-key.pem`) |
 
 ### 2. EC2 and repo
@@ -276,12 +288,14 @@ Workflow file: `.github/workflows/deploy-aws.yml`
 ## Monitoring & Maintenance
 
 **View Logs:**
+
 ```bash
 # On EC2
 docker compose -f docker-compose.aws.yml logs -f backend
 ```
 
 **Update Application:**
+
 ```bash
 # Pull latest code
 git pull origin main
@@ -294,6 +308,7 @@ docker compose -f docker-compose.aws.yml up -d --build
 ```
 
 **Database Backups:**
+
 - RDS provides automated backups
 - Configure backup retention in RDS settings
 
@@ -310,17 +325,31 @@ docker compose -f docker-compose.aws.yml up -d --build
 
 ## Troubleshooting
 
+**"ENOSPC: no space left on device" or "file appears to be corrupt" during Docker build:**
+
+- The EC2 instance has run out of disk space. The deploy script now prunes unused Docker build cache and images before each build.
+- **Manual fix:** SSH to EC2 and run:
+  ```bash
+  docker builder prune -af
+  docker image prune -af
+  ```
+  Then re-run the deploy. Avoid `docker system prune --volumes` if you use Docker volumes for other services.
+- **Long-term:** Use at least **20 GB** root volume for EC2 (see Step 3). If already created, resize the EBS volume in the EC2 console, then extend the filesystem (e.g. `sudo growpart /dev/xvda 1 && sudo xfs_growfs /` on Amazon Linux).
+
 **Can't connect to database:**
+
 - Check security group rules
 - Verify DATABASE_URL in .env
 - Check RDS is publicly accessible
 
 **Application won't start:**
+
 - Check logs: `docker compose logs backend`
 - Verify environment variables
 - Check port 4000 is open in security group
 
 **High costs:**
+
 - Use free tier resources
 - Stop EC2 when not in use
 - Monitor AWS Cost Explorer
