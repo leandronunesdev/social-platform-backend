@@ -325,6 +325,11 @@ docker compose -f docker-compose.aws.yml up -d --build
 
 ## Troubleshooting
 
+**"kex_exchange_identification: read: Connection reset by peer" or "Connection reset by ... port 22":**
+
+- The SSH connection to EC2 is being reset during the initial handshake (before the session starts). Often transient. The workflow now retries the deploy up to 3 times with a 45s delay.
+- **If it persists:** Check EC2 instance status (running, healthy), security group (SSH/22 allowed from **GitHub Actions IPs** — use [GitHub meta API](https://api.github.com/meta) `hooks` or `actions` IPs, or temporarily 0.0.0.0/0 for debugging), and that sshd is running (`sudo systemctl status sshd`). Rate limiting (`MaxStartups` in sshd_config) or a flaky network can also cause this.
+
 **"client_loop: send disconnect: Broken pipe" or SSH drops during deploy:**
 
 - The SSH session from GitHub Actions to EC2 closed mid-build (often during `yarn install`). The workflow now uses `ServerAliveInterval` / `ServerAliveCountMax` to keep the connection alive.
