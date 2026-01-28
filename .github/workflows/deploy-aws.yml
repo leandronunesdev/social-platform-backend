@@ -20,7 +20,11 @@ jobs:
 
       - name: Deploy to EC2
         run: |
-          ssh -i ~/.ssh/deploy_key.pem -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'ENDSSH'
+          ssh -i ~/.ssh/deploy_key.pem \
+            -o StrictHostKeyChecking=no \
+            -o ServerAliveInterval=30 \
+            -o ServerAliveCountMax=30 \
+            ec2-user@${{ secrets.EC2_HOST }} << 'ENDSSH'
             set -e
             cd ~/social-platform-backend || exit 1
             if [ ! -f .env.production ]; then
