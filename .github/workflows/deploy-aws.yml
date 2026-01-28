@@ -20,11 +20,15 @@ jobs:
 
       - name: Deploy to EC2
         run: |
-          ssh -i ~/.ssh/deploy_key.pem \
-            -o StrictHostKeyChecking=no \
-            -o ServerAliveInterval=30 \
-            -o ServerAliveCountMax=30 \
-            ec2-user@${{ secrets.EC2_HOST }} << 'ENDSSH'
+          set +e
+          for attempt in 1 2 3; do
+            echo "::notice ::Deploy attempt $attempt/3..."
+            ssh -i ~/.ssh/deploy_key.pem \
+              -o StrictHostKeyChecking=no \
+              -o ServerAliveInterval=30 \
+              -o ServerAliveCountMax=30 \
+              -o ConnectTimeout=15 \
+              ec2-user@${{ secrets.EC2_HOST }} << 'ENDSSH'
             set -e
             cd ~/social-platform-backend || exit 1
             if [ ! -f .env.production ]; then
@@ -35,3 +39,8 @@ jobs:
             git reset --hard origin/main
             ./scripts/deploy-aws.sh
           ENDSSH
+            r=$?
+            [ $r -eq 0 ] && exit 0
+            [ $attempt -lt 3 ] && echo "::warning ::SSH failed (exit $r), retrying in 45s..." && sleep 45
+          done
+          exit 1
