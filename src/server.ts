@@ -24,7 +24,7 @@ app.get("/api-docs.json", (_req, res) => res.json(swaggerSpec));
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 import authRoutes from "./routes/authRoutes";
-app.use("/api/auth", authRoutes);
+app.use("/auth", authRoutes);
 
 const PORT = process.env.PORT || 4000;
 
