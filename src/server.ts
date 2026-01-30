@@ -8,11 +8,21 @@ import { swaggerSpec } from "./config/swagger";
 
 const app = express();
 
-// Enable CORS for frontend
-const corsOrigin = process.env.CORS_ORIGIN || "http://localhost:3000";
+// Enable CORS for frontend (comma-separated origins; localhost:3000 always allowed in production for local dev)
+const corsOriginEnv = process.env.CORS_ORIGIN || "http://localhost:3000";
+const allowedOrigins = corsOriginEnv
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+if (
+  process.env.NODE_ENV === "production" &&
+  !allowedOrigins.includes("http://localhost:3000")
+) {
+  allowedOrigins.push("http://localhost:3000");
+}
 app.use(
   cors({
-    origin: corsOrigin,
+    origin: allowedOrigins,
     credentials: true,
   })
 );
@@ -24,7 +34,7 @@ app.get("/api-docs.json", (_req, res) => res.json(swaggerSpec));
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 import authRoutes from "./routes/authRoutes";
-app.use("/api/auth", authRoutes);
+app.use("/auth", authRoutes);
 
 const PORT = process.env.PORT || 4000;
 

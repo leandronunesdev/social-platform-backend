@@ -99,11 +99,12 @@ tests/              # Unit and integration tests
 
 ## API Endpoints (Week 1)
 
-| Endpoint           | Method | Description         | Status         |
-| ------------------ | ------ | ------------------- | -------------- |
-| `/health`          | GET    | Health check        | ✅ Done        |
-| `/registerAccount` | POST   | Create user account | 🚧 In progress |
-| `/updateProfile`   | PUT    | Update user profile | ⏳ Planned     |
+| Endpoint                | Method | Description         | Status  |
+| ----------------------- | ------ | ------------------- | ------- |
+| `/health`               | GET    | Health check        | ✅ Done |
+| `/auth/registerAccount` | POST   | Create user account | ✅ Done |
+| `/auth/login`           | POST   | User login          | ✅ Done |
+| `/auth/updateProfile`   | PUT    | Update user profile | ✅ Done |
 
 ---
 
@@ -197,6 +198,8 @@ docker compose exec backend yarn prisma migrate deploy
 ## AWS Deployment
 
 See [docs/aws-deployment.md](docs/aws-deployment.md) for complete deployment guide.
+
+**Custom domain (socialmediaplatform.online):** See [docs/domain-setup-socialmediaplatform.online.md](docs/domain-setup-socialmediaplatform.online.md) for DNS (GoDaddy), HTTPS (Nginx + Let's Encrypt), and frontend/backend URLs.
 
 **Quick Start:**
 

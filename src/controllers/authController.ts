@@ -12,7 +12,7 @@ const RegisterAccountSchema = z.object({
 
 /**
  * @swagger
- * /api/auth/registerAccount:
+ * /auth/registerAccount:
  *   post:
  *     summary: Register a new user account
  *     tags: [Authentication]
@@ -112,7 +112,7 @@ const UpdateProfileSchema = z.object({
 
 /**
  * @swagger
- * /api/auth/updateProfile:
+ * /auth/updateProfile:
  *   put:
  *     summary: Update user profile
  *     tags: [Profile]
@@ -204,7 +204,7 @@ const LoginSchema = z.object({
 
 /**
  * @swagger
- * /api/auth/login:
+ * /auth/login:
  *   post:
  *     summary: Login with email and password
  *     tags: [Authentication]
