@@ -10,6 +10,12 @@ set -e
 ENV_TYPE="${1:-production}"
 ENV_FILE=".env.$ENV_TYPE"
 
+# Use persistent env file in home dir if repo file doesn't exist (survives git pull/reset)
+PERSISTENT_ENV="$HOME/.env.social-platform.$ENV_TYPE"
+if [ ! -f "$ENV_FILE" ] && [ -f "$PERSISTENT_ENV" ]; then
+    ENV_FILE="$PERSISTENT_ENV"
+fi
+
 echo "🚀 Starting AWS deployment ($ENV_TYPE)..."
 
 # Check if Docker is running
@@ -21,7 +27,7 @@ fi
 # Check if env file exists
 if [ ! -f "$ENV_FILE" ]; then
     echo "❌ $ENV_FILE file not found!"
-    echo "Please create $ENV_FILE with your $ENV_TYPE environment variables."
+    echo "Create it in the repo OR as $PERSISTENT_ENV (recommended - survives git pull)."
     echo "See docs/env.$ENV_TYPE.template for reference."
     exit 1
 fi
