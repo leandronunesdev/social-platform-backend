@@ -39,3 +39,4 @@ coverage/
 postgres_data/
 study
 social-platform-backend-key.pem
+social-platform-backend-staging-key.pem

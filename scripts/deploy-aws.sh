@@ -1,10 +1,16 @@
 #!/bin/sh
 # AWS Deployment Script
 # Run this on your EC2 instance after initial setup
+#
+# Usage: ./scripts/deploy-aws.sh [staging|production]
+# Default: production (uses .env.production)
 
 set -e
 
-echo "🚀 Starting AWS deployment..."
+ENV_TYPE="${1:-production}"
+ENV_FILE=".env.$ENV_TYPE"
+
+echo "🚀 Starting AWS deployment ($ENV_TYPE)..."
 
 # Check if Docker is running
 if ! docker info > /dev/null 2>&1; then
@@ -12,16 +18,16 @@ if ! docker info > /dev/null 2>&1; then
     exit 1
 fi
 
-# Check if .env.production exists
-if [ ! -f .env.production ]; then
-    echo "❌ .env.production file not found!"
-    echo "Please create .env.production with your production environment variables."
-    echo "See docs/env.production.template for reference."
+# Check if env file exists
+if [ ! -f "$ENV_FILE" ]; then
+    echo "❌ $ENV_FILE file not found!"
+    echo "Please create $ENV_FILE with your $ENV_TYPE environment variables."
+    echo "See docs/env.$ENV_TYPE.template for reference."
     exit 1
 fi
 
 # Load environment variables
-export $(cat .env.production | grep -v '^#' | xargs)
+export $(cat "$ENV_FILE" | grep -v '^#' | xargs)
 
 echo "🧹 Freeing disk space (pruning unused Docker build cache and images)..."
 docker builder prune -af 2>/dev/null || true
@@ -31,10 +37,10 @@ echo "📦 Building Docker image..."
 docker build -t social-platform-backend .
 
 echo "🗄️  Running database migrations..."
-docker-compose -f docker-compose.aws.yml --env-file .env.production run --rm backend yarn prisma migrate deploy
+docker-compose -f docker-compose.aws.yml --env-file "$ENV_FILE" run --rm backend yarn prisma migrate deploy
 
 echo "🚀 Starting services..."
-docker-compose -f docker-compose.aws.yml --env-file .env.production up -d
+docker-compose -f docker-compose.aws.yml --env-file "$ENV_FILE" up -d
 
 echo "⏳ Waiting for services to be healthy..."
 sleep 5

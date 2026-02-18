@@ -1,15 +1,59 @@
-# Deploy to EC2 on push to main
-# Requires GitHub secrets: EC2_HOST, EC2_SSH_PRIVATE_KEY
+# Deploy to EC2: develop → staging, main → production
+#
+# GitHub Secrets required:
+#   Staging:  EC2_HOST_STAGING, EC2_SSH_PRIVATE_KEY_STAGING
+#   Production: EC2_HOST, EC2_SSH_PRIVATE_KEY
 
 name: Deploy to AWS
 
 on:
   push:
-    branches: [main]
+    branches: [develop, main]
 
 jobs:
-  deploy:
+  deploy-staging:
+    if: github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_PRIVATE_KEY_STAGING }}" > ~/.ssh/deploy_key.pem
+          chmod 600 ~/.ssh/deploy_key.pem
+          ssh-keyscan -H ${{ secrets.EC2_HOST_STAGING }} >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Deploy to Staging EC2
+        run: |
+          set +e
+          for attempt in 1 2 3; do
+            echo "::notice ::Deploy attempt $attempt/3..."
+            ssh -i ~/.ssh/deploy_key.pem \
+              -o StrictHostKeyChecking=no \
+              -o ServerAliveInterval=30 \
+              -o ServerAliveCountMax=30 \
+              -o ConnectTimeout=15 \
+              ec2-user@${{ secrets.EC2_HOST_STAGING }} << 'ENDSSH'
+            set -e
+            cd ~/social-platform-backend || exit 1
+            if [ ! -f .env.staging ]; then
+              echo "::error ::.env.staging not found on EC2. Create it: ssh to EC2, then nano ~/social-platform-backend/.env.staging (see docs/env.staging.template)"
+              exit 1
+            fi
+            git fetch origin
+            git reset --hard origin/develop
+            ./scripts/deploy-aws.sh staging
+          ENDSSH
+            r=$?
+            [ $r -eq 0 ] && exit 0
+            [ $attempt -lt 3 ] && echo "::warning ::SSH failed (exit $r), retrying in 45s..." && sleep 45
+          done
+          exit 1
+
+  deploy-production:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
     steps:
       - name: Setup SSH key
         run: |
@@ -18,7 +62,7 @@ jobs:
           chmod 600 ~/.ssh/deploy_key.pem
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
 
-      - name: Deploy to EC2
+      - name: Deploy to Production EC2
         run: |
           set +e
           for attempt in 1 2 3; do
@@ -37,7 +81,7 @@ jobs:
             fi
             git fetch origin
             git reset --hard origin/main
-            ./scripts/deploy-aws.sh
+            ./scripts/deploy-aws.sh production
           ENDSSH
             r=$?
             [ $r -eq 0 ] && exit 0
