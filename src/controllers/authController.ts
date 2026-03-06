@@ -167,7 +167,6 @@ const UpdateProfileSchema = z.object({
  */
 const updateProfile = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    // Extract userAccountId from authenticated request (set by auth middleware)
     const userAccountId = req.userId;
 
     if (!userAccountId) {
@@ -275,4 +274,42 @@ const login = async (req: Request, res: Response) => {
   }
 };
 
-export const authController = { registerAccount, updateProfile, login };
+const PasswordResetSchema = z.object({
+  email: z.string().email(),
+});
+
+const passwordReset = async (req: Request, res: Response) => {
+  try {
+    const validatedData = PasswordResetSchema.parse(req.body);
+
+    await authService.requestPasswordReset(validatedData.email);
+
+    res.status(200).json({
+      message:
+        "If an account exists for this email, a reset code has been sent.",
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ errors: error.issues });
+    } else if (error instanceof Error) {
+      if (error.message === "Email not found") {
+        return res
+          .status(404)
+          .json({ message: "Email not found. Please check it and try again" });
+      }
+      if (error.message === "Resend too soon") {
+        return res
+          .status(429)
+          .json({ message: "Resend too soon. Try again after the countdown." });
+      }
+    }
+    return res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+export const authController = {
+  registerAccount,
+  updateProfile,
+  login,
+  passwordReset,
+};

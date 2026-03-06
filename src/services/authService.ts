@@ -1,6 +1,10 @@
 import bcrypt from "bcrypt";
 import { userRepository } from "../repositories/userRepository";
 import { generateToken } from "../utils/jwt";
+import { passwordResetRequestRepository } from "../repositories/passwordResetRequestRepository";
+import { codeGenerator } from "../utils/codeGenerator";
+import { notificationService } from "./notificationService";
+import { DeliveryChannel } from "@prisma/client";
 
 type RegisterAccountParams = {
   name: string;
@@ -95,4 +99,56 @@ const login = async ({ email, password }: LoginParams) => {
   return { userAccountId: userAccount.id, token };
 };
 
-export const authService = { registerAccount, updateProfile, login };
+const canResend = (createdAt: Date) => {
+  const now = new Date();
+  return now.getTime() - createdAt.getTime() >= 60000;
+};
+
+const requestPasswordReset = async (email: string) => {
+  const user = await userRepository.findByEmail(email);
+
+  if (!user) {
+    throw new Error("Email not found");
+  }
+
+  const existingPasswordRequest =
+    await passwordResetRequestRepository.findLatestPendingByUserAccountId(
+      user.id
+    );
+
+  if (
+    existingPasswordRequest &&
+    !canResend(existingPasswordRequest.createdAt)
+  ) {
+    throw new Error("Resend too soon");
+  }
+
+  const code = codeGenerator.generate6DigitCode();
+
+  const codeHash = await codeGenerator.hash(code);
+
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+  await passwordResetRequestRepository.createPasswordResetRequest({
+    userAccountId: user.id,
+    codeHash,
+    expiresAt,
+  });
+
+  await notificationService.sendResetCode({
+    to: user.email,
+    code,
+    channel: DeliveryChannel.EMAIL,
+  });
+
+  return {
+    ok: true,
+  };
+};
+
+export const authService = {
+  registerAccount,
+  updateProfile,
+  login,
+  requestPasswordReset,
+};
