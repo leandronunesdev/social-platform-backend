@@ -29,7 +29,24 @@ const findLatestPendingByUserAccountId = async (userAccountId: string) => {
   });
 };
 
+const incrementAttempts = async (requestId: string, maxAttempts = 5) => {
+  const current = await prisma.passwordResetRequest.findUnique({
+    where: { id: requestId },
+    select: { attempts: true },
+  });
+  if (!current) return null;
+  const newAttempts = current.attempts + 1;
+  return prisma.passwordResetRequest.update({
+    where: { id: requestId },
+    data: {
+      attempts: newAttempts,
+      ...(newAttempts >= maxAttempts && { status: ResetStatus.LOCKED }),
+    },
+  });
+};
+
 export const passwordResetRequestRepository = {
   createPasswordResetRequest,
   findLatestPendingByUserAccountId,
+  incrementAttempts,
 };

@@ -331,15 +331,99 @@ const passwordReset = async (req: Request, res: Response) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ errors: error.issues });
     } else if (error instanceof Error) {
-      if (error.message === "Email not found") {
+      if (error.message === "EMAIL_NOT_FOUND") {
         return res
           .status(404)
           .json({ message: "Email not found. Please check it and try again" });
       }
-      if (error.message === "Resend too soon") {
+      if (error.message === "RESEND_TOO_SOON") {
         return res
           .status(429)
           .json({ message: "Resend too soon. Try again after the countdown." });
+      }
+    }
+    return res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+const ValidateCodeSchema = z.object({
+  email: z.string().email(),
+  code: z.string().length(6),
+});
+
+/**
+ * @swagger
+ * /auth/validateCode:
+ *   post:
+ *     summary: Validate password reset code
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - code
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: "john@example.com"
+ *               code:
+ *                 type: string
+ *                 minLength: 6
+ *                 maxLength: 6
+ *                 example: "123456"
+ *     responses:
+ *       200:
+ *         description: Code validated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Code validated successfully."
+ *       400:
+ *         description: Validation error or invalid/expired code
+ *       429:
+ *         description: Too many attempts
+ *       500:
+ *         description: Internal server error
+ */
+const validateCode = async (req: Request, res: Response) => {
+  try {
+    const validatedData = ValidateCodeSchema.parse(req.body);
+
+    await authService.validateResetCode(
+      validatedData.email,
+      validatedData.code
+    );
+
+    res.status(200).json({ message: "Code validated successfully." });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ errors: error.issues });
+    } else if (error instanceof Error) {
+      if (error.message === "CODE_EXPIRED") {
+        return res
+          .status(400)
+          .json({ message: "Code has expired. Request a new one." });
+      }
+
+      if (error.message === "USER_LOCKED") {
+        return res
+          .status(429)
+          .json({ message: "Too many attempts. Request a new code." });
+      }
+
+      if (error.message === "INVALID_CODE") {
+        return res.status(400).json({
+          message: "We couldn't validate the code. Check it and try again.",
+        });
       }
     }
     return res.status(500).json({ message: "Internal server error." });
@@ -351,4 +435,5 @@ export const authController = {
   updateProfile,
   login,
   passwordReset,
+  validateCode,
 };

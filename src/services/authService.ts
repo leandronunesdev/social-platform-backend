@@ -108,7 +108,7 @@ const requestPasswordReset = async (email: string) => {
   const user = await userRepository.findByEmail(email);
 
   if (!user) {
-    throw new Error("Email not found");
+    throw new Error("EMAIL_NOT_FOUND");
   }
 
   const existingPasswordRequest =
@@ -120,7 +120,7 @@ const requestPasswordReset = async (email: string) => {
     existingPasswordRequest &&
     !canResend(existingPasswordRequest.createdAt)
   ) {
-    throw new Error("Resend too soon");
+    throw new Error("RESEND_TO_SOON");
   }
 
   const code = codeGenerator.generate6DigitCode();
@@ -146,9 +146,43 @@ const requestPasswordReset = async (email: string) => {
   };
 };
 
+const validateResetCode = async (email: string, code: string) => {
+  const user = await userRepository.findByEmail(email);
+
+  if (!user) return;
+
+  const passwordResetRequest =
+    await passwordResetRequestRepository.findLatestPendingByUserAccountId(
+      user?.id
+    );
+
+  if (!passwordResetRequest) return;
+
+  const isPasswordResetRequestExpired =
+    new Date() > passwordResetRequest?.expiresAt;
+
+  if (isPasswordResetRequestExpired) throw new Error("CODE_EXPIRED");
+
+  const isPasswordResetRequestLocked = passwordResetRequest.status === "LOCKED";
+
+  if (isPasswordResetRequestLocked) throw new Error("USER_LOCKED");
+
+  const isCodeValid = await bcrypt.compare(code, passwordResetRequest.codeHash);
+
+  if (!isCodeValid) {
+    await passwordResetRequestRepository.incrementAttempts(
+      passwordResetRequest.id
+    );
+    throw new Error("INVALID_CODE");
+  }
+
+  return { ok: true };
+};
+
 export const authService = {
   registerAccount,
   updateProfile,
   login,
   requestPasswordReset,
+  validateResetCode,
 };
