@@ -278,6 +278,45 @@ const PasswordResetSchema = z.object({
   email: z.string().email(),
 });
 
+/**
+ * @swagger
+ * /auth/passwordReset:
+ *   post:
+ *     summary: Request a password reset code
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: "john@example.com"
+ *     responses:
+ *       200:
+ *         description: Reset code sent successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "If an account exists for this email, a reset code has been sent."
+ *       400:
+ *         description: Validation error
+ *       404:
+ *         description: Email not found
+ *       429:
+ *         description: Resend too soon
+ *       500:
+ *         description: Internal server error
+ */
 const passwordReset = async (req: Request, res: Response) => {
   try {
     const validatedData = PasswordResetSchema.parse(req.body);
