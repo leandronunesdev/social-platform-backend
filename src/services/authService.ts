@@ -13,6 +13,12 @@ type RegisterAccountParams = {
   password: string;
 };
 
+const getHashedPassword = async (password: string) => {
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  return hashedPassword;
+};
+
 const registerAccount = async ({
   name,
   username,
@@ -27,7 +33,7 @@ const registerAccount = async ({
     throw new Error("Username or email already exists");
   }
 
-  const hashedPassword = await bcrypt.hash(password, 10);
+  const hashedPassword = await getHashedPassword(password);
 
   const userAccount = await userRepository.createUserAccount({
     name,
@@ -120,7 +126,7 @@ const requestPasswordReset = async (email: string) => {
     existingPasswordRequest &&
     !canResend(existingPasswordRequest.createdAt)
   ) {
-    throw new Error("RESEND_TO_SOON");
+    throw new Error("RESEND_TOO_SOON");
   }
 
   const code = codeGenerator.generate6DigitCode();
@@ -146,17 +152,23 @@ const requestPasswordReset = async (email: string) => {
   };
 };
 
-const validateResetCode = async (email: string, code: string) => {
+const getPasswordResetRequest = async (email: string) => {
   const user = await userRepository.findByEmail(email);
 
-  if (!user) return;
+  if (!user) throw new Error("EMAIL_NOT_FOUND");
 
   const passwordResetRequest =
     await passwordResetRequestRepository.findLatestPendingByUserAccountId(
       user?.id
     );
 
-  if (!passwordResetRequest) return;
+  if (!passwordResetRequest) throw new Error("PASSWORD_RESET_NOT_FOUND");
+
+  return { user, passwordResetRequest };
+};
+
+const validateResetCode = async (email: string, code: string) => {
+  const { passwordResetRequest } = await getPasswordResetRequest(email);
 
   const isPasswordResetRequestExpired =
     new Date() > passwordResetRequest?.expiresAt;
@@ -179,10 +191,29 @@ const validateResetCode = async (email: string, code: string) => {
   return { ok: true };
 };
 
+const setNewPassword = async (
+  email: string,
+  code: string,
+  newPassword: string
+) => {
+  if (newPassword.length < 8) throw new Error("WEAK_PASSWORD");
+
+  await validateResetCode(email, code);
+
+  const { user, passwordResetRequest } = await getPasswordResetRequest(email);
+
+  const hashedPassword = await getHashedPassword(newPassword);
+
+  await userRepository.updatePassword(user.id, hashedPassword);
+
+  await passwordResetRequestRepository.markAsUsed(passwordResetRequest.id);
+};
+
 export const authService = {
   registerAccount,
   updateProfile,
   login,
   requestPasswordReset,
   validateResetCode,
+  setNewPassword,
 };

@@ -351,6 +351,29 @@ const ValidateCodeSchema = z.object({
   code: z.string().length(6),
 });
 
+const passwordResetErrorHandler = (error: unknown, res: Response) => {
+  if (error instanceof Error) {
+    if (error.message === "CODE_EXPIRED") {
+      return res
+        .status(400)
+        .json({ message: "Code has expired. Request a new one." });
+    }
+
+    if (error.message === "USER_LOCKED") {
+      return res
+        .status(429)
+        .json({ message: "Too many attempts. Request a new code." });
+    }
+
+    if (error.message === "INVALID_CODE") {
+      return res.status(400).json({
+        message: "We couldn't validate the code. Check it and try again.",
+      });
+    }
+  }
+  return res.status(500).json({ message: "Internal server error." });
+};
+
 /**
  * @swagger
  * /auth/validateCode:
@@ -408,23 +431,80 @@ const validateCode = async (req: Request, res: Response) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ errors: error.issues });
     } else if (error instanceof Error) {
-      if (error.message === "CODE_EXPIRED") {
-        return res
-          .status(400)
-          .json({ message: "Code has expired. Request a new one." });
-      }
+      return passwordResetErrorHandler(error, res);
+    }
+    return res.status(500).json({ message: "Internal server error." });
+  }
+};
 
-      if (error.message === "USER_LOCKED") {
-        return res
-          .status(429)
-          .json({ message: "Too many attempts. Request a new code." });
-      }
+const NewPasswordSchema = z.object({
+  email: z.string().email(),
+  code: z.string().length(6),
+  newPassword: z.string().min(8, "Password must be at least 8 characters."),
+});
 
-      if (error.message === "INVALID_CODE") {
-        return res.status(400).json({
-          message: "We couldn't validate the code. Check it and try again.",
-        });
-      }
+/**
+ * @swagger
+ * /auth/setNewPassword:
+ *   post:
+ *     summary: Set new password after reset code validation
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - code
+ *               - newPassword
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: "john@example.com"
+ *               code:
+ *                 type: string
+ *                 minLength: 6
+ *                 maxLength: 6
+ *                 example: "123456"
+ *               newPassword:
+ *                 type: string
+ *                 minLength: 8
+ *                 example: "newpassword123"
+ *     responses:
+ *       200:
+ *         description: Password updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Password updated successfully. You can now sign in."
+ *       400:
+ *         description: Validation error or invalid/expired code
+ *       429:
+ *         description: Too many attempts
+ *       500:
+ *         description: Internal server error
+ */
+const setNewPassword = async (req: Request, res: Response) => {
+  try {
+    const { email, code, newPassword } = NewPasswordSchema.parse(req.body);
+
+    await authService.setNewPassword(email, code, newPassword);
+
+    res.status(200).json({
+      message: "Password updated successfully. You can now sign in.",
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ errors: error.issues });
+    } else if (error instanceof Error) {
+      return passwordResetErrorHandler(error, res);
     }
     return res.status(500).json({ message: "Internal server error." });
   }
@@ -436,4 +516,5 @@ export const authController = {
   login,
   passwordReset,
   validateCode,
+  setNewPassword,
 };

@@ -45,8 +45,16 @@ const incrementAttempts = async (requestId: string, maxAttempts = 5) => {
   });
 };
 
+const markAsUsed = async (requestId: string) => {
+  return prisma.passwordResetRequest.update({
+    where: { id: requestId },
+    data: { status: ResetStatus.USED },
+  });
+};
+
 export const passwordResetRequestRepository = {
   createPasswordResetRequest,
   findLatestPendingByUserAccountId,
   incrementAttempts,
+  markAsUsed,
 };
