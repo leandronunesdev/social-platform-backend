@@ -27,7 +27,7 @@ const registerAccount = async ({
 }: RegisterAccountParams) => {
   const existingUser = await userRepository.findByEmailOrUsername(
     email,
-    username
+    username,
   );
   if (existingUser) {
     throw new Error("Username or email already exists");
@@ -62,7 +62,7 @@ export type UpdateProfileParams = {
 
 const updateProfile = async (
   userAccountId: string,
-  { bio, country, state, city, avatarUrl }: UpdateProfileParams
+  { bio, country, state, city, avatarUrl }: UpdateProfileParams,
 ) => {
   const userProfile = await userRepository.findUserProfile(userAccountId);
 
@@ -119,7 +119,7 @@ const requestPasswordReset = async (email: string) => {
 
   const existingPasswordRequest =
     await passwordResetRequestRepository.findLatestPendingByUserAccountId(
-      user.id
+      user.id,
     );
 
   if (
@@ -159,7 +159,7 @@ const getPasswordResetRequest = async (email: string) => {
 
   const passwordResetRequest =
     await passwordResetRequestRepository.findLatestPendingByUserAccountId(
-      user?.id
+      user?.id,
     );
 
   if (!passwordResetRequest) throw new Error("PASSWORD_RESET_NOT_FOUND");
@@ -183,7 +183,7 @@ const validateResetCode = async (email: string, code: string) => {
 
   if (!isCodeValid) {
     await passwordResetRequestRepository.incrementAttempts(
-      passwordResetRequest.id
+      passwordResetRequest.id,
     );
     throw new Error("INVALID_CODE");
   }
@@ -194,7 +194,7 @@ const validateResetCode = async (email: string, code: string) => {
 const setNewPassword = async (
   email: string,
   code: string,
-  newPassword: string
+  newPassword: string,
 ) => {
   if (newPassword.length < 8) throw new Error("WEAK_PASSWORD");
 
