@@ -34,22 +34,14 @@ WORKDIR /app
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nodejs
 
-# Copy package files
-COPY package.json yarn.lock ./
-
-# Install only production dependencies
-RUN yarn install --frozen-lockfile --production=true && \
-    yarn cache clean
-
-# Copy built files from builder
+# Copy runtime dependencies and built files
+COPY --from=deps /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
+
+# Copy Prisma files and CLI for running migrations in the container
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-
-# Copy Prisma CLI from builder for migrations (if needed)
 COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
-
-# Copy Prisma files for migrations
 COPY prisma ./prisma
 COPY prisma.config.ts ./
 
