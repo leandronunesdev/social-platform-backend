@@ -45,6 +45,9 @@ COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 COPY prisma ./prisma
 COPY prisma.config.ts ./
 
+# Copy package definition so "yarn run ..." works for migrations
+COPY package.json yarn.lock ./
+
 # Set ownership
 RUN chown -R nodejs:nodejs /app
 
