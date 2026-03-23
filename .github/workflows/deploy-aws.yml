@@ -64,6 +64,8 @@ jobs:
               bash -s << 'ENDSSH'
             set -e
             cd ~/social-platform-backend || exit 1
+            git fetch origin
+            git reset --hard origin/develop
             cat > .env.staging <<EOF
             NODE_ENV=${NODE_ENV}
             PORT=${PORT}
@@ -80,8 +82,6 @@ jobs:
             EMAIL_FROM=${EMAIL_FROM}
             EOF
             chmod 600 .env.staging
-            git fetch origin
-            git reset --hard origin/develop
             ./scripts/deploy-aws.sh staging
           ENDSSH
             r=$?
@@ -143,6 +143,8 @@ jobs:
               bash -s << 'ENDSSH'
             set -e
             cd ~/social-platform-backend || exit 1
+            git fetch origin
+            git reset --hard origin/main
             cat > .env.production <<EOF
             NODE_ENV=${NODE_ENV}
             PORT=${PORT}
@@ -159,8 +161,6 @@ jobs:
             EMAIL_FROM=${EMAIL_FROM}
             EOF
             chmod 600 .env.production
-            git fetch origin
-            git reset --hard origin/main
             ./scripts/deploy-aws.sh production
           ENDSSH
             r=$?

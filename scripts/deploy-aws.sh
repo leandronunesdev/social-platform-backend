@@ -31,6 +31,7 @@ if [ ! -f "$ENV_FILE" ]; then
     echo "See docs/env.$ENV_TYPE.template for reference."
     exit 1
 fi
+echo "🔐 Using env file: $ENV_FILE"
 
 # Load environment variables
 export $(cat "$ENV_FILE" | grep -v '^#' | xargs)
