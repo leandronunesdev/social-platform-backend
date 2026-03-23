@@ -34,7 +34,10 @@ fi
 echo "🔐 Using env file: $ENV_FILE"
 
 # Load environment variables
-export $(cat "$ENV_FILE" | grep -v '^#' | xargs)
+set -a
+
+. "$ENV_FILE"
+set +a
 
 # Use docker compose (V2 plugin) or fall back to docker-compose (standalone)
 if docker compose version > /dev/null 2>&1; then
