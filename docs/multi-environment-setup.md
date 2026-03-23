@@ -111,7 +111,15 @@ sudo systemctl reload nginx
 
 ## 4. Environment File on Staging EC2
 
-On the **staging** EC2, create `.env.staging`:
+Store the env file **outside the repo** so it survives `git pull` and `git reset --hard`:
+
+```bash
+# Create in home directory (recommended - survives git operations)
+cp ~/social-platform-backend/docs/env.staging.template ~/.env.social-platform.staging
+nano ~/.env.social-platform.staging
+```
+
+Or, if you prefer the repo directory, create `.env.staging` in the repo (it's in .gitignore, but may be affected by some git operations):
 
 ```bash
 cd ~/social-platform-backend

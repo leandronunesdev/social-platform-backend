@@ -86,6 +86,16 @@ const updateUserProfile = async (
   });
 };
 
+const updatePassword = async (
+  userAccountId: string,
+  hashedPassword: string
+) => {
+  return prisma.userAccount.update({
+    where: { id: userAccountId },
+    data: { password: hashedPassword },
+  });
+};
+
 const userRepository = {
   findByEmailOrUsername,
   findByEmail,
@@ -93,6 +103,7 @@ const userRepository = {
   createUserProfile,
   findUserProfile,
   updateUserProfile,
+  updatePassword,
 };
 
 export { userRepository };

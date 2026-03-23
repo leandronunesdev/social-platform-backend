@@ -170,7 +170,7 @@ yarn docker:build
 # Run with environment file
 yarn docker:run
 
-# Or use docker-compose for production
+# Or use docker compose for production
 docker compose -f docker-compose.prod.yml up -d
 ```
 

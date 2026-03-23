@@ -7,16 +7,41 @@ datasource db {
   provider = "postgresql"
 }
 
+enum DeliveryChannel {
+  EMAIL
+  SMS
+}
+
+enum ResetStatus {
+  PENDING
+  USED
+  EXPIRED
+  LOCKED
+}
+
+model PasswordResetRequest {
+  id            String          @id @default(cuid())
+  userAccountId String
+  UserAccount   UserAccount     @relation(fields: [userAccountId], references: [id])
+  codeHash      String
+  channel       DeliveryChannel
+  createdAt     DateTime
+  expiresAt     DateTime
+  attempts      Int
+  status        ResetStatus
+}
+
 model UserAccount {
-  id          String       @id @default(cuid())
-  name        String
-  username    String       @unique
-  email       String       @unique
-  password    String
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  isDeleted   Boolean      @default(false)
-  UserProfile UserProfile?
+  id                    String                 @id @default(cuid())
+  name                  String
+  username              String                 @unique
+  email                 String                 @unique
+  password              String
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  isDeleted             Boolean                @default(false)
+  UserProfile           UserProfile?
+  passwordResetRequests PasswordResetRequest[]
 }
 
 model UserProfile {
