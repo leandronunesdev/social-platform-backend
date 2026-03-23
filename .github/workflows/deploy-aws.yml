@@ -15,6 +15,20 @@ jobs:
     if: github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     environment: staging
+    env:
+      NODE_ENV: ${{ vars.NODE_ENV }}
+      PORT: ${{ vars.PORT }}
+      API_BASE_URL: ${{ vars.API_BASE_URL }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      JWT_EXPIRES_IN: ${{ secrets.JWT_EXPIRES_IN }}
+      CORS_ORIGIN: ${{ secrets.CORS_ORIGIN }}
+      SES_IAM_USER: ${{ secrets.SES_IAM_USER }}
+      SES_SMTP_USER: ${{ secrets.SES_SMTP_USER }}
+      SES_SMTP_PASS: ${{ secrets.SES_SMTP_PASS }}
+      SES_SMTP_HOST: ${{ secrets.SES_SMTP_HOST }}
+      SES_SMTP_PORT: ${{ secrets.SES_SMTP_PORT }}
+      EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
     steps:
       - name: Setup SSH key
         run: |
@@ -33,13 +47,39 @@ jobs:
               -o ServerAliveInterval=30 \
               -o ServerAliveCountMax=30 \
               -o ConnectTimeout=15 \
-              ec2-user@${{ secrets.EC2_HOST_STAGING }} << 'ENDSSH'
+              ec2-user@${{ secrets.EC2_HOST_STAGING }} \
+              NODE_ENV="${NODE_ENV}" \
+              PORT="${PORT}" \
+              API_BASE_URL="${API_BASE_URL}" \
+              DATABASE_URL="${DATABASE_URL}" \
+              JWT_SECRET="${JWT_SECRET}" \
+              JWT_EXPIRES_IN="${JWT_EXPIRES_IN}" \
+              CORS_ORIGIN="${CORS_ORIGIN}" \
+              SES_IAM_USER="${SES_IAM_USER}" \
+              SES_SMTP_USER="${SES_SMTP_USER}" \
+              SES_SMTP_PASS="${SES_SMTP_PASS}" \
+              SES_SMTP_HOST="${SES_SMTP_HOST}" \
+              SES_SMTP_PORT="${SES_SMTP_PORT}" \
+              EMAIL_FROM="${EMAIL_FROM}" \
+              bash -s << 'ENDSSH'
             set -e
             cd ~/social-platform-backend || exit 1
-            if [ ! -f .env.staging ] && [ ! -f ~/.env.social-platform.staging ]; then
-              echo "::error ::.env.staging not found. Create ~/.env.social-platform.staging on EC2 (survives git pull). See docs/env.staging.template"
-              exit 1
-            fi
+            cat > .env.staging <<EOF
+            NODE_ENV=${NODE_ENV}
+            PORT=${PORT}
+            DATABASE_URL=${DATABASE_URL}
+            JWT_SECRET=${JWT_SECRET}
+            JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
+            CORS_ORIGIN=${CORS_ORIGIN}
+            API_BASE_URL=${API_BASE_URL}
+            SES_IAM_USER=${SES_IAM_USER}
+            SES_SMTP_USER=${SES_SMTP_USER}
+            SES_SMTP_PASS=${SES_SMTP_PASS}
+            SES_SMTP_HOST=${SES_SMTP_HOST}
+            SES_SMTP_PORT=${SES_SMTP_PORT}
+            EMAIL_FROM=${EMAIL_FROM}
+            EOF
+            chmod 600 .env.staging
             git fetch origin
             git reset --hard origin/develop
             ./scripts/deploy-aws.sh staging
@@ -54,6 +94,20 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: production
+    env:
+      NODE_ENV: ${{ vars.NODE_ENV }}
+      PORT: ${{ vars.PORT }}
+      API_BASE_URL: ${{ vars.API_BASE_URL }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      JWT_EXPIRES_IN: ${{ secrets.JWT_EXPIRES_IN }}
+      CORS_ORIGIN: ${{ secrets.CORS_ORIGIN }}
+      SES_IAM_USER: ${{ secrets.SES_IAM_USER }}
+      SES_SMTP_USER: ${{ secrets.SES_SMTP_USER }}
+      SES_SMTP_PASS: ${{ secrets.SES_SMTP_PASS }}
+      SES_SMTP_HOST: ${{ secrets.SES_SMTP_HOST }}
+      SES_SMTP_PORT: ${{ secrets.SES_SMTP_PORT }}
+      EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
     steps:
       - name: Setup SSH key
         run: |
@@ -72,13 +126,39 @@ jobs:
               -o ServerAliveInterval=30 \
               -o ServerAliveCountMax=30 \
               -o ConnectTimeout=15 \
-              ec2-user@${{ secrets.EC2_HOST }} << 'ENDSSH'
+              ec2-user@${{ secrets.EC2_HOST }} \
+              NODE_ENV="${NODE_ENV}" \
+              PORT="${PORT}" \
+              API_BASE_URL="${API_BASE_URL}" \
+              DATABASE_URL="${DATABASE_URL}" \
+              JWT_SECRET="${JWT_SECRET}" \
+              JWT_EXPIRES_IN="${JWT_EXPIRES_IN}" \
+              CORS_ORIGIN="${CORS_ORIGIN}" \
+              SES_IAM_USER="${SES_IAM_USER}" \
+              SES_SMTP_USER="${SES_SMTP_USER}" \
+              SES_SMTP_PASS="${SES_SMTP_PASS}" \
+              SES_SMTP_HOST="${SES_SMTP_HOST}" \
+              SES_SMTP_PORT="${SES_SMTP_PORT}" \
+              EMAIL_FROM="${EMAIL_FROM}" \
+              bash -s << 'ENDSSH'
             set -e
             cd ~/social-platform-backend || exit 1
-            if [ ! -f .env.production ]; then
-              echo "::error ::.env.production not found on EC2. Create it: ssh to EC2, then nano ~/social-platform-backend/.env.production (see docs/env.production.template)"
-              exit 1
-            fi
+            cat > .env.production <<EOF
+            NODE_ENV=${NODE_ENV}
+            PORT=${PORT}
+            DATABASE_URL=${DATABASE_URL}
+            JWT_SECRET=${JWT_SECRET}
+            JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
+            CORS_ORIGIN=${CORS_ORIGIN}
+            API_BASE_URL=${API_BASE_URL}
+            SES_IAM_USER=${SES_IAM_USER}
+            SES_SMTP_USER=${SES_SMTP_USER}
+            SES_SMTP_PASS=${SES_SMTP_PASS}
+            SES_SMTP_HOST=${SES_SMTP_HOST}
+            SES_SMTP_PORT=${SES_SMTP_PORT}
+            EMAIL_FROM=${EMAIL_FROM}
+            EOF
+            chmod 600 .env.production
             git fetch origin
             git reset --hard origin/main
             ./scripts/deploy-aws.sh production
