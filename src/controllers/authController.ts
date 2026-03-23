@@ -341,6 +341,16 @@ const passwordReset = async (req: Request, res: Response) => {
           .status(429)
           .json({ message: "Resend too soon. Try again after the countdown." });
       }
+      if (error.message === "EMAIL_DELIVERY_FAILED") {
+        return res
+          .status(503)
+          .json({ message: "Email service unavailable. Try again in a moment." });
+      }
+      if (error.message.startsWith("MISSING_ENV_")) {
+        console.error("Password reset email configuration error:", error.message);
+      } else {
+        console.error("Password reset failed:", error.message);
+      }
     }
     return res.status(500).json({ message: "Internal server error." });
   }
