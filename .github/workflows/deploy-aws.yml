@@ -66,21 +66,21 @@ jobs:
             cd ~/social-platform-backend || exit 1
             git fetch origin
             git reset --hard origin/develop
-            cat > .env.staging <<EOF
-            NODE_ENV=${NODE_ENV}
-            PORT=${PORT}
-            DATABASE_URL=${DATABASE_URL}
-            JWT_SECRET=${JWT_SECRET}
-            JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
-            CORS_ORIGIN=${CORS_ORIGIN}
-            API_BASE_URL=${API_BASE_URL}
-            SES_IAM_USER=${SES_IAM_USER}
-            SES_SMTP_USER=${SES_SMTP_USER}
-            SES_SMTP_PASS=${SES_SMTP_PASS}
-            SES_SMTP_HOST=${SES_SMTP_HOST}
-            SES_SMTP_PORT=${SES_SMTP_PORT}
-            EMAIL_FROM=${EMAIL_FROM}
-            EOF
+            {
+              printf '%s\n' "NODE_ENV=${NODE_ENV}"
+              printf '%s\n' "PORT=${PORT}"
+              printf '%s\n' "DATABASE_URL=${DATABASE_URL}"
+              printf '%s\n' "JWT_SECRET=${JWT_SECRET}"
+              printf '%s\n' "JWT_EXPIRES_IN=${JWT_EXPIRES_IN}"
+              printf '%s\n' "CORS_ORIGIN=${CORS_ORIGIN}"
+              printf '%s\n' "API_BASE_URL=${API_BASE_URL}"
+              printf '%s\n' "SES_IAM_USER=${SES_IAM_USER}"
+              printf '%s\n' "SES_SMTP_USER=${SES_SMTP_USER}"
+              printf '%s\n' "SES_SMTP_PASS=${SES_SMTP_PASS}"
+              printf '%s\n' "SES_SMTP_HOST=${SES_SMTP_HOST}"
+              printf '%s\n' "SES_SMTP_PORT=${SES_SMTP_PORT}"
+              printf '%s\n' "EMAIL_FROM=${EMAIL_FROM}"
+            } > .env.staging
             chmod 600 .env.staging
             ./scripts/deploy-aws.sh staging
           ENDSSH
@@ -145,21 +145,21 @@ jobs:
             cd ~/social-platform-backend || exit 1
             git fetch origin
             git reset --hard origin/main
-            cat > .env.production <<EOF
-            NODE_ENV=${NODE_ENV}
-            PORT=${PORT}
-            DATABASE_URL=${DATABASE_URL}
-            JWT_SECRET=${JWT_SECRET}
-            JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
-            CORS_ORIGIN=${CORS_ORIGIN}
-            API_BASE_URL=${API_BASE_URL}
-            SES_IAM_USER=${SES_IAM_USER}
-            SES_SMTP_USER=${SES_SMTP_USER}
-            SES_SMTP_PASS=${SES_SMTP_PASS}
-            SES_SMTP_HOST=${SES_SMTP_HOST}
-            SES_SMTP_PORT=${SES_SMTP_PORT}
-            EMAIL_FROM=${EMAIL_FROM}
-            EOF
+            {
+              printf '%s\n' "NODE_ENV=${NODE_ENV}"
+              printf '%s\n' "PORT=${PORT}"
+              printf '%s\n' "DATABASE_URL=${DATABASE_URL}"
+              printf '%s\n' "JWT_SECRET=${JWT_SECRET}"
+              printf '%s\n' "JWT_EXPIRES_IN=${JWT_EXPIRES_IN}"
+              printf '%s\n' "CORS_ORIGIN=${CORS_ORIGIN}"
+              printf '%s\n' "API_BASE_URL=${API_BASE_URL}"
+              printf '%s\n' "SES_IAM_USER=${SES_IAM_USER}"
+              printf '%s\n' "SES_SMTP_USER=${SES_SMTP_USER}"
+              printf '%s\n' "SES_SMTP_PASS=${SES_SMTP_PASS}"
+              printf '%s\n' "SES_SMTP_HOST=${SES_SMTP_HOST}"
+              printf '%s\n' "SES_SMTP_PORT=${SES_SMTP_PORT}"
+              printf '%s\n' "EMAIL_FROM=${EMAIL_FROM}"
+            } > .env.production
             chmod 600 .env.production
             ./scripts/deploy-aws.sh production
           ENDSSH
