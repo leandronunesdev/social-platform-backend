@@ -19,6 +19,7 @@ services:
       - SES_SMTP_USER=${SES_SMTP_USER}
       - SES_SMTP_PASS=${SES_SMTP_PASS}
       - EMAIL_FROM=${EMAIL_FROM}
+      - DEBUG_API_ERRORS=${DEBUG_API_ERRORS:-false}
     ports:
       - "4000:4000"
     restart: unless-stopped

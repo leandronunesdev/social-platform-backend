@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Remote deploy helper — stdin-fed over SSH from GitHub Actions.
 # Usage (from runner): ssh ... VAR=value ... bash -s -- <staging|production> < scripts/gh-ec2-deploy.sh
-# Expects env: NODE_ENV, PORT, API_BASE_URL, DATABASE_URL, JWT_*, CORS_ORIGIN, SES_*, EMAIL_FROM
+# Expects env: NODE_ENV, PORT, API_BASE_URL, DATABASE_URL, JWT_*, CORS_ORIGIN, SES_*, EMAIL_FROM,
+#   DEBUG_API_ERRORS (optional; "true" = include debug on 500 responses + stack in logs)
 
 set -euo pipefail
 
@@ -39,6 +40,7 @@ fi
   printf '%s\n' "SES_SMTP_HOST=${SES_SMTP_HOST:-}"
   printf '%s\n' "SES_SMTP_PORT=${SES_SMTP_PORT:-}"
   printf '%s\n' "EMAIL_FROM=${EMAIL_FROM:-}"
+  printf '%s\n' "DEBUG_API_ERRORS=${DEBUG_API_ERRORS:-false}"
 } >"$ENV_FILE"
 
 chmod 600 "$ENV_FILE"

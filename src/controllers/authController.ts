@@ -2,6 +2,10 @@ import { Request, Response } from "express";
 import { authService } from "../services/authService";
 import { z } from "zod";
 import { AuthenticatedRequest } from "../middlewares/authMiddleware";
+import {
+  jsonInternalError,
+  logRouteError,
+} from "../utils/routeError";
 
 const RegisterAccountSchema = z.object({
   name: z.string().min(1, "Name is required."),
@@ -84,14 +88,15 @@ const registerAccount = async (req: Request, res: Response) => {
           .status(409)
           .json({ message: "Username or email already exists." });
       }
-      console.error("Internal Server Error:", error.message);
-      if (process.env.NODE_ENV !== "production") {
-        console.error(error.stack);
-      }
-      return res.status(500).json({ message: "Internal server error." });
+      logRouteError("registerAccount", error);
+      return res
+        .status(500)
+        .json(jsonInternalError(error, "Internal server error."));
     } else {
-      console.error("Unexpected error:", error);
-      return res.status(500).json({ message: "An unexpected error occurred." });
+      logRouteError("registerAccount", error);
+      return res
+        .status(500)
+        .json(jsonInternalError(error, "An unexpected error occurred."));
     }
   }
 };
@@ -184,14 +189,15 @@ const updateProfile = async (req: AuthenticatedRequest, res: Response) => {
       if (error.message === "User profile not found") {
         return res.status(404).json({ message: "User profile not found." });
       }
-      console.error("Internal Server Error:", error.message);
-      if (process.env.NODE_ENV !== "production") {
-        console.error(error.stack);
-      }
-      return res.status(500).json({ message: "Internal server error." });
+      logRouteError("updateProfile", error);
+      return res
+        .status(500)
+        .json(jsonInternalError(error, "Internal server error."));
     } else {
-      console.error("Unexpected error:", error);
-      return res.status(500).json({ message: "An unexpected error occurred." });
+      logRouteError("updateProfile", error);
+      return res
+        .status(500)
+        .json(jsonInternalError(error, "An unexpected error occurred."));
     }
   }
 };
@@ -262,14 +268,15 @@ const login = async (req: Request, res: Response) => {
       if (error.message === "Invalid email or password") {
         return res.status(401).json({ message: "Invalid email or password." });
       }
-      console.error("Internal Server Error:", error.message);
-      if (process.env.NODE_ENV !== "production") {
-        console.error(error.stack);
-      }
-      return res.status(500).json({ message: "Internal server error." });
+      logRouteError("login", error);
+      return res
+        .status(500)
+        .json(jsonInternalError(error, "Internal server error."));
     } else {
-      console.error("Unexpected error:", error);
-      return res.status(500).json({ message: "An unexpected error occurred." });
+      logRouteError("login", error);
+      return res
+        .status(500)
+        .json(jsonInternalError(error, "An unexpected error occurred."));
     }
   }
 };
@@ -346,13 +353,15 @@ const passwordReset = async (req: Request, res: Response) => {
           .status(503)
           .json({ message: "Email service unavailable. Try again in a moment." });
       }
-      if (error.message.startsWith("MISSING_ENV_")) {
-        console.error("Password reset email configuration error:", error.message);
-      } else {
-        console.error("Password reset failed:", error.message);
-      }
+      logRouteError("passwordReset", error);
+      return res
+        .status(500)
+        .json(jsonInternalError(error, "Internal server error."));
     }
-    return res.status(500).json({ message: "Internal server error." });
+    logRouteError("passwordReset", error);
+    return res
+      .status(500)
+      .json(jsonInternalError(error, "Internal server error."));
   }
 };
 
@@ -381,7 +390,10 @@ const passwordResetErrorHandler = (error: unknown, res: Response) => {
       });
     }
   }
-  return res.status(500).json({ message: "Internal server error." });
+  logRouteError("passwordResetFlow", error);
+  return res
+    .status(500)
+    .json(jsonInternalError(error, "Internal server error."));
 };
 
 /**
@@ -443,7 +455,10 @@ const validateCode = async (req: Request, res: Response) => {
     } else if (error instanceof Error) {
       return passwordResetErrorHandler(error, res);
     }
-    return res.status(500).json({ message: "Internal server error." });
+    logRouteError("validateCode", error);
+    return res
+      .status(500)
+      .json(jsonInternalError(error, "Internal server error."));
   }
 };
 
@@ -516,7 +531,10 @@ const setNewPassword = async (req: Request, res: Response) => {
     } else if (error instanceof Error) {
       return passwordResetErrorHandler(error, res);
     }
-    return res.status(500).json({ message: "Internal server error." });
+    logRouteError("setNewPassword", error);
+    return res
+      .status(500)
+      .json(jsonInternalError(error, "Internal server error."));
   }
 };
 
