@@ -3,6 +3,12 @@
 # GitHub Secrets required:
 #   Staging:  EC2_HOST_STAGING, EC2_SSH_PRIVATE_KEY_STAGING
 #   Production: EC2_HOST, EC2_SSH_PRIVATE_KEY
+#
+# GitHub Environment variables/secrets (staging + production):
+#   vars:  NODE_ENV, PORT, API_BASE_URL
+#   secrets: DATABASE_URL, JWT_SECRET, JWT_EXPIRES_IN, CORS_ORIGIN,
+#            SES_IAM_USER, SES_SMTP_USER, SES_SMTP_PASS, SES_SMTP_HOST,
+#            SES_SMTP_PORT, EMAIL_FROM
 
 name: Deploy to AWS
 
@@ -30,6 +36,8 @@ jobs:
       SES_SMTP_PORT: ${{ secrets.SES_SMTP_PORT }}
       EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
     steps:
+      - uses: actions/checkout@v4
+
       - name: Setup SSH key
         run: |
           mkdir -p ~/.ssh
@@ -61,29 +69,7 @@ jobs:
               SES_SMTP_HOST="${SES_SMTP_HOST}" \
               SES_SMTP_PORT="${SES_SMTP_PORT}" \
               EMAIL_FROM="${EMAIL_FROM}" \
-              bash -s << 'ENDSSH'
-            set -e
-            cd ~/social-platform-backend || exit 1
-            git fetch origin
-            git reset --hard origin/develop
-            {
-              printf '%s\n' "NODE_ENV=${NODE_ENV}"
-              printf '%s\n' "PORT=${PORT}"
-              printf '%s\n' "DATABASE_URL=${DATABASE_URL}"
-              printf '%s\n' "JWT_SECRET=${JWT_SECRET}"
-              printf '%s\n' "JWT_EXPIRES_IN=${JWT_EXPIRES_IN}"
-              printf '%s\n' "CORS_ORIGIN=${CORS_ORIGIN}"
-              printf '%s\n' "API_BASE_URL=${API_BASE_URL}"
-              printf '%s\n' "SES_IAM_USER=${SES_IAM_USER}"
-              printf '%s\n' "SES_SMTP_USER=${SES_SMTP_USER}"
-              printf '%s\n' "SES_SMTP_PASS=${SES_SMTP_PASS}"
-              printf '%s\n' "SES_SMTP_HOST=${SES_SMTP_HOST}"
-              printf '%s\n' "SES_SMTP_PORT=${SES_SMTP_PORT}"
-              printf '%s\n' "EMAIL_FROM=${EMAIL_FROM}"
-            } > .env.staging
-            chmod 600 .env.staging
-            ./scripts/deploy-aws.sh staging
-          ENDSSH
+              bash -s -- staging < scripts/gh-ec2-deploy.sh
             r=$?
             [ $r -eq 0 ] && exit 0
             [ $attempt -lt 3 ] && echo "::warning ::SSH failed (exit $r), retrying in 45s..." && sleep 45
@@ -109,6 +95,8 @@ jobs:
       SES_SMTP_PORT: ${{ secrets.SES_SMTP_PORT }}
       EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
     steps:
+      - uses: actions/checkout@v4
+
       - name: Setup SSH key
         run: |
           mkdir -p ~/.ssh
@@ -140,29 +128,7 @@ jobs:
               SES_SMTP_HOST="${SES_SMTP_HOST}" \
               SES_SMTP_PORT="${SES_SMTP_PORT}" \
               EMAIL_FROM="${EMAIL_FROM}" \
-              bash -s << 'ENDSSH'
-            set -e
-            cd ~/social-platform-backend || exit 1
-            git fetch origin
-            git reset --hard origin/main
-            {
-              printf '%s\n' "NODE_ENV=${NODE_ENV}"
-              printf '%s\n' "PORT=${PORT}"
-              printf '%s\n' "DATABASE_URL=${DATABASE_URL}"
-              printf '%s\n' "JWT_SECRET=${JWT_SECRET}"
-              printf '%s\n' "JWT_EXPIRES_IN=${JWT_EXPIRES_IN}"
-              printf '%s\n' "CORS_ORIGIN=${CORS_ORIGIN}"
-              printf '%s\n' "API_BASE_URL=${API_BASE_URL}"
-              printf '%s\n' "SES_IAM_USER=${SES_IAM_USER}"
-              printf '%s\n' "SES_SMTP_USER=${SES_SMTP_USER}"
-              printf '%s\n' "SES_SMTP_PASS=${SES_SMTP_PASS}"
-              printf '%s\n' "SES_SMTP_HOST=${SES_SMTP_HOST}"
-              printf '%s\n' "SES_SMTP_PORT=${SES_SMTP_PORT}"
-              printf '%s\n' "EMAIL_FROM=${EMAIL_FROM}"
-            } > .env.production
-            chmod 600 .env.production
-            ./scripts/deploy-aws.sh production
-          ENDSSH
+              bash -s -- production < scripts/gh-ec2-deploy.sh
             r=$?
             [ $r -eq 0 ] && exit 0
             [ $attempt -lt 3 ] && echo "::warning ::SSH failed (exit $r), retrying in 45s..." && sleep 45
