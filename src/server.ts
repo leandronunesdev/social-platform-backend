@@ -5,10 +5,12 @@ import express from "express";
 import cors from "cors";
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./config/swagger";
+import { prisma } from "./lib/prisma";
+import { jsonInternalError, logRouteError } from "./utils/routeError";
+import authRoutes from "./routes/authRoutes";
 
 const app = express();
 
-// Enable CORS for frontend (comma-separated origins; localhost:3000 always allowed in production for local dev)
 const corsOriginEnv = process.env.CORS_ORIGIN || "http://localhost:3000";
 const allowedOrigins = corsOriginEnv
   .split(",")
@@ -20,20 +22,34 @@ if (
 ) {
   allowedOrigins.push("http://localhost:3000");
 }
+const apiPublicBase =
+  process.env.API_BASE_URL?.trim().replace(/\/$/, "") || "";
+if (apiPublicBase && !allowedOrigins.includes(apiPublicBase)) {
+  allowedOrigins.push(apiPublicBase);
+}
+
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin(origin, callback) {
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+      callback(null, false);
+    },
     credentials: true,
-  })
+  }),
 );
 
 app.use(express.json());
 
-// Swagger documentation (exact /api-docs.json before /api-docs prefix so it’s not handled by swagger-ui)
 app.get("/api-docs.json", (_req, res) => res.json(swaggerSpec));
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-import authRoutes from "./routes/authRoutes";
 app.use("/auth", authRoutes);
 
 const PORT = process.env.PORT || 4000;
@@ -47,18 +63,40 @@ const PORT = process.env.PORT || 4000;
  *     responses:
  *       200:
  *         description: Server is running
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: "ok"
  */
-app.get("/health", (req, res) => {
+app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
 });
+
+app.get("/health/ready", async (_req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ status: "ok", database: "connected" });
+  } catch (error) {
+    logRouteError("health/ready", error);
+    res.status(503).json({
+      status: "error",
+      database: "disconnected",
+      ...(process.env.DEBUG_API_ERRORS === "true"
+        ? { debug: { message: error instanceof Error ? error.message : String(error) } }
+        : {}),
+    });
+  }
+});
+
+app.use(
+  (
+    err: unknown,
+    _req: express.Request,
+    res: express.Response,
+    _next: express.NextFunction,
+  ) => {
+    logRouteError("expressErrorHandler", err);
+    res
+      .status(500)
+      .json(jsonInternalError(err, "Internal server error."));
+  },
+);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

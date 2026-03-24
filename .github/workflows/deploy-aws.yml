@@ -5,7 +5,7 @@
 #   Production: EC2_HOST, EC2_SSH_PRIVATE_KEY
 #
 # GitHub Environment variables/secrets (staging + production):
-#   vars:  NODE_ENV, PORT, API_BASE_URL
+#   vars:  NODE_ENV, PORT, API_BASE_URL, DEBUG_API_ERRORS (optional: "true" for 500 debug payloads)
 #   secrets: DATABASE_URL, JWT_SECRET, JWT_EXPIRES_IN, CORS_ORIGIN,
 #            SES_IAM_USER, SES_SMTP_USER, SES_SMTP_PASS, SES_SMTP_HOST,
 #            SES_SMTP_PORT, EMAIL_FROM
@@ -35,6 +35,7 @@ jobs:
       SES_SMTP_HOST: ${{ secrets.SES_SMTP_HOST }}
       SES_SMTP_PORT: ${{ secrets.SES_SMTP_PORT }}
       EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+      DEBUG_API_ERRORS: ${{ vars.DEBUG_API_ERRORS }}
     steps:
       - uses: actions/checkout@v4
 
@@ -69,6 +70,7 @@ jobs:
               SES_SMTP_HOST="${SES_SMTP_HOST}" \
               SES_SMTP_PORT="${SES_SMTP_PORT}" \
               EMAIL_FROM="${EMAIL_FROM}" \
+              DEBUG_API_ERRORS="${DEBUG_API_ERRORS}" \
               bash -s -- staging < scripts/gh-ec2-deploy.sh
             r=$?
             [ $r -eq 0 ] && exit 0
@@ -94,6 +96,7 @@ jobs:
       SES_SMTP_HOST: ${{ secrets.SES_SMTP_HOST }}
       SES_SMTP_PORT: ${{ secrets.SES_SMTP_PORT }}
       EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+      DEBUG_API_ERRORS: ${{ vars.DEBUG_API_ERRORS }}
     steps:
       - uses: actions/checkout@v4
 
@@ -128,6 +131,7 @@ jobs:
               SES_SMTP_HOST="${SES_SMTP_HOST}" \
               SES_SMTP_PORT="${SES_SMTP_PORT}" \
               EMAIL_FROM="${EMAIL_FROM}" \
+              DEBUG_API_ERRORS="${DEBUG_API_ERRORS}" \
               bash -s -- production < scripts/gh-ec2-deploy.sh
             r=$?
             [ $r -eq 0 ] && exit 0
