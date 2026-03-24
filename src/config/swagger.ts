@@ -28,6 +28,27 @@ if (fs.existsSync(path.join(root, "src", "controllers"))) {
 const apiBaseUrl =
   process.env.API_BASE_URL || `http://localhost:${process.env.PORT || 4000}`;
 
+// Swagger "Try it out" runs in the browser. If the docs are https://api.example.com
+// but servers.url is http://1.2.3.4, the browser blocks the request (mixed content).
+// Same-origin "/" always matches the page you opened (http or https).
+const servers: { url: string; description: string }[] = [
+  {
+    url: "/",
+    description: "Current host (use for Try it out in the browser)",
+  },
+];
+
+const normalizedBase = apiBaseUrl.replace(/\/$/, "");
+if (normalizedBase && normalizedBase !== "") {
+  servers.push({
+    url: normalizedBase,
+    description:
+      process.env.NODE_ENV === "production"
+        ? "Production (API_BASE_URL)"
+        : "Development (API_BASE_URL)",
+  });
+}
+
 const options: swaggerJsdoc.Options = {
   definition: {
     openapi: "3.0.0",
@@ -39,15 +60,7 @@ const options: swaggerJsdoc.Options = {
         name: "API Support",
       },
     },
-    servers: [
-      {
-        url: apiBaseUrl,
-        description:
-          process.env.NODE_ENV === "production"
-            ? "Production server"
-            : "Development server",
-      },
-    ],
+    servers,
     components: {
       securitySchemes: {
         bearerAuth: {
