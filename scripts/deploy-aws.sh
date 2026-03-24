@@ -35,8 +35,10 @@ echo "🔐 Using env file: $ENV_FILE"
 
 # Load environment variables
 set -a
-
-. "$ENV_FILE"
+case "$ENV_FILE" in
+    /*) . "$ENV_FILE" ;;
+    *) . "./$ENV_FILE" ;;
+esac
 set +a
 
 # Use docker compose (V2 plugin) or fall back to docker-compose (standalone)
@@ -62,10 +64,19 @@ $DOCKER_COMPOSE -f docker-compose.aws.yml --env-file "$ENV_FILE" up -d
 echo "⏳ Waiting for services to be healthy..."
 sleep 5
 
+# Public IPv4 (IMDSv2 first, then IMDSv1 fallback for older instances)
+get_public_ipv4() {
+    token=$(curl -fsS -m 2 -X PUT "http://169.254.169.254/latest/api/token" \
+        -H "X-aws-ec2-metadata-token-ttl-seconds: 21600" 2>/dev/null) || return 1
+    curl -fsS -m 2 -H "X-aws-ec2-metadata-token: $token" \
+        "http://169.254.169.254/latest/meta-data/public-ipv4" 2>/dev/null
+}
+
 # Check health endpoint
 if curl -f http://localhost:4000/health > /dev/null 2>&1; then
     echo "✅ Deployment successful! Health check passed."
-    echo "🌐 API is running at: http://$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4):4000"
+    pub_ip=$(get_public_ipv4 || curl -fsS -m 2 "http://169.254.169.254/latest/meta-data/public-ipv4" 2>/dev/null || echo "localhost")
+    echo "🌐 API is running at: http://${pub_ip}:4000"
 else
     echo "⚠️  Health check failed. Check logs with: $DOCKER_COMPOSE -f docker-compose.aws.yml logs backend"
     exit 1
