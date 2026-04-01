@@ -9,6 +9,19 @@ const create = async (data: { userAccountId: string; content: string }) => {
   });
 };
 
+const findById = async (id: string) => {
+  return prisma.post.findUnique({
+    where: { id },
+  });
+};
+
+const update = async (params: { id: string; content: string }) => {
+  return prisma.post.update({
+    where: { id: params.id },
+    data: { content: params.content },
+  });
+};
+
 const findManyByUserId = async (params: {
   userAccountId: string;
   skip: number;
@@ -29,6 +42,8 @@ const findManyByUserId = async (params: {
 
 const postRepository = {
   create,
+  findById,
+  update,
   findManyByUserId,
 };
 

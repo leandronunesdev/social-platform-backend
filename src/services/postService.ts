@@ -33,6 +33,25 @@ const createPost = async (
   return mapPost(row);
 };
 
+const updatePost = async (params: {
+  postId: string;
+  userAccountId: string;
+  content: string;
+}): Promise<PostDto> => {
+  const existing = await postRepository.findById(params.postId);
+  if (!existing) {
+    throw new Error("POST_NOT_FOUND");
+  }
+  if (existing.userAccountId !== params.userAccountId) {
+    throw new Error("POST_FORBIDDEN");
+  }
+  const row = await postRepository.update({
+    id: params.postId,
+    content: params.content,
+  });
+  return mapPost(row);
+};
+
 const listPostsByUser = async (params: {
   userAccountId: string;
   page: number;
@@ -58,6 +77,7 @@ const listPostsByUser = async (params: {
 
 const postService = {
   createPost,
+  updatePost,
   listPostsByUser,
 };
 
