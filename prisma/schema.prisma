@@ -42,6 +42,16 @@ model UserAccount {
   isDeleted             Boolean                @default(false)
   UserProfile           UserProfile?
   passwordResetRequests PasswordResetRequest[]
+  posts                 Post[]
+}
+
+model Post {
+  id            String      @id @default(cuid())
+  userAccountId String
+  UserAccount   UserAccount @relation(fields: [userAccountId], references: [id], onDelete: Cascade)
+  content       String      @db.VarChar(300)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 }
 
 model UserProfile {

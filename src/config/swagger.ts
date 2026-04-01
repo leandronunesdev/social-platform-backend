@@ -55,12 +55,19 @@ const options: swaggerJsdoc.Options = {
     info: {
       title: "Social Platform API",
       version: "1.0.0",
-      description: "REST API for social media platform MVP",
+      description:
+        "REST API for social media platform MVP.\n\n" +
+        "**Posts** require a JWT. Use **POST /auth/login** (or register), copy the `token` from the response, click **Authorize**, and paste the token (Swagger sends it as Bearer).",
       contact: {
         name: "API Support",
       },
     },
     servers,
+    tags: [
+      { name: "Health", description: "Liveness and readiness" },
+      { name: "Authentication", description: "Accounts, login, profile" },
+      { name: "Posts", description: "Create and list posts (JWT required)" },
+    ],
     components: {
       securitySchemes: {
         bearerAuth: {
@@ -69,9 +76,24 @@ const options: swaggerJsdoc.Options = {
           bearerFormat: "JWT",
         },
       },
+      schemas: {
+        Post: {
+          type: "object",
+          properties: {
+            id: { type: "string" },
+            userId: { type: "string" },
+            content: { type: "string" },
+            createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" },
+          },
+        },
+      },
     },
   },
   apis,
 };
 
-export const swaggerSpec = swaggerJsdoc(options);
+/** Regenerate on each call so new JSDoc routes appear without restarting the server. */
+export function buildSwaggerSpec(): object {
+  return swaggerJsdoc(options);
+}
