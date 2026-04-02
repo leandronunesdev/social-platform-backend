@@ -21,13 +21,28 @@ const CreatePostSchema = z
   .object({
     content: z.string().optional(),
     sharePostId: z.string().min(1).optional(),
+    replyPostId: z.string().min(1).optional(),
   })
   .superRefine((val, ctx) => {
     const content = (val.content ?? "").trim();
-    if (!val.sharePostId && content.length === 0) {
+    if (val.sharePostId && val.replyPostId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Cannot set both sharePostId and replyPostId.",
+        path: ["sharePostId"],
+      });
+    }
+    if (!val.sharePostId && !val.replyPostId && content.length === 0) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Content is required unless you are sharing a post (use sharePostId).",
+        path: ["content"],
+      });
+    }
+    if (val.replyPostId && content.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Content is required when replying (use replyPostId).",
         path: ["content"],
       });
     }
@@ -42,6 +57,7 @@ const CreatePostSchema = z
   .transform((val) => ({
     content: (val.content ?? "").trim(),
     sharePostId: val.sharePostId,
+    replyPostId: val.replyPostId,
   }));
 
 const UpdatePostSchema = z.object({
@@ -80,7 +96,10 @@ function pathParamString(value: string | string[] | undefined): string {
  *                 example: "Hello world"
  *               sharePostId:
  *                 type: string
- *                 description: If set, creates a share of that post; increments its sharesCount
+ *                 description: If set, creates a share of that post; increments its sharesCount (mutually exclusive with replyPostId)
+ *               replyPostId:
+ *                 type: string
+ *                 description: If set, creates a reply to that post; requires non-empty content; mutually exclusive with sharePostId
  *     responses:
  *       201:
  *         description: Post created
@@ -96,7 +115,7 @@ function pathParamString(value: string | string[] | undefined): string {
  *       401:
  *         description: Unauthorized
  *       404:
- *         description: Original post (sharePostId) does not exist
+ *         description: Original post (sharePostId or replyPostId) does not exist
  *       422:
  *         description: Validation error
  *       500:
@@ -113,6 +132,7 @@ const createPost = async (req: AuthenticatedRequest, res: Response) => {
       userAccountId: userId,
       content: validated.content,
       sharePostId: validated.sharePostId,
+      replyPostId: validated.replyPostId,
     });
     return res.status(201).json({ post });
   } catch (error) {
@@ -121,6 +141,9 @@ const createPost = async (req: AuthenticatedRequest, res: Response) => {
     }
     if (error instanceof Error && error.message === "SHARE_TARGET_NOT_FOUND") {
       return res.status(404).json({ message: "Original post not found." });
+    }
+    if (error instanceof Error && error.message === "REPLY_TARGET_NOT_FOUND") {
+      return res.status(404).json({ message: "Post to reply to not found." });
     }
     logRouteError("posts.createPost", error);
     return res
@@ -483,6 +506,98 @@ const listPostShares = async (req: AuthenticatedRequest, res: Response) => {
 
 /**
  * @swagger
+ * /posts/{id}/replies:
+ *   get:
+ *     summary: List direct replies to a post (oldest first)
+ *     tags: [Posts]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           minLength: 1
+ *         description: Parent post id (only direct children where replyPostId equals this id)
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 20
+ *     responses:
+ *       200:
+ *         description: Paginated replies with author, avatarUrl, and likedByMe
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/PostReplyItem'
+ *                 page: { type: integer }
+ *                 limit: { type: integer }
+ *                 total: { type: integer }
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Parent post not found
+ *       422:
+ *         description: Validation error
+ *       500:
+ *         description: Internal server error
+ */
+const listPostReplies = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.userId) {
+      return res.status(401).json({ message: "Authentication required." });
+    }
+    const postId = pathParamString(req.params.id);
+    if (!postId) {
+      return res.status(422).json({
+        errors: [
+          {
+            code: z.ZodIssueCode.custom,
+            message: "Post id is required in the path.",
+            path: ["id"],
+          },
+        ],
+      });
+    }
+    const query = PaginationQuerySchema.parse(req.query);
+    const result = await postService.listPostReplies({
+      parentPostId: postId,
+      page: query.page,
+      limit: query.limit,
+      viewerUserId: req.userId,
+    });
+    return res.status(200).json(result);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(422).json({ errors: error.issues });
+    }
+    if (error instanceof Error && error.message === "POST_NOT_FOUND") {
+      return res.status(404).json({ message: "Post not found." });
+    }
+    logRouteError("posts.listPostReplies", error);
+    return res
+      .status(500)
+      .json(jsonInternalError(error, "Internal server error."));
+  }
+};
+
+/**
+ * @swagger
  * /posts/{id}/likes:
  *   get:
  *     summary: List users who liked a post
@@ -708,6 +823,7 @@ const postController = {
   updatePost,
   listPostsByUser,
   listPostShares,
+  listPostReplies,
   listPostLikes,
   likePost,
   unlikePost,

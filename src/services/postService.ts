@@ -7,7 +7,9 @@ export type PostDto = {
   content: string;
   sharesCount: number;
   likesCount: number;
+  repliesCount: number;
   sharePostId: string | null;
+  replyPostId: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -23,6 +25,15 @@ export type PostAuthorDto = {
   userId: string;
   username: string;
   name: string;
+};
+
+export type PostAuthorWithAvatarDto = PostAuthorDto & {
+  avatarUrl: string | null;
+};
+
+export type PostReplyItemDto = PostDto & {
+  author: PostAuthorWithAvatarDto;
+  likedByMe: boolean;
 };
 
 export type PostSnapshotDto = PostDto & {
@@ -53,7 +64,9 @@ function mapPost(row: {
   content: string;
   sharesCount: number;
   likesCount: number;
+  repliesCount: number;
   sharePostId: string | null;
+  replyPostId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }): PostDto {
@@ -63,9 +76,25 @@ function mapPost(row: {
     content: row.content,
     sharesCount: row.sharesCount,
     likesCount: row.likesCount,
+    repliesCount: row.repliesCount,
     sharePostId: row.sharePostId,
+    replyPostId: row.replyPostId,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+function mapAuthorWithAvatar(account: {
+  id: string;
+  name: string;
+  username: string;
+  UserProfile: { avatarUrl: string | null } | null;
+}): PostAuthorWithAvatarDto {
+  return {
+    userId: account.id,
+    username: account.username,
+    name: account.name,
+    avatarUrl: account.UserProfile?.avatarUrl ?? null,
   };
 }
 
@@ -73,11 +102,13 @@ const createPost = async (params: {
   userAccountId: string;
   content: string;
   sharePostId?: string | undefined;
+  replyPostId?: string | undefined;
 }): Promise<PostDto> => {
   const row = await postRepository.create({
     userAccountId: params.userAccountId,
     content: params.content,
     sharePostId: params.sharePostId ?? null,
+    replyPostId: params.replyPostId ?? null,
   });
   return mapPost(row);
 };
@@ -141,6 +172,40 @@ const listSharesOfPost = async (params: {
   });
   return {
     data: items.map(mapPost),
+    page: params.page,
+    limit: params.limit,
+    total,
+  };
+};
+
+const listPostReplies = async (params: {
+  parentPostId: string;
+  page: number;
+  limit: number;
+  viewerUserId: string;
+}) => {
+  const parent = await postRepository.findById(params.parentPostId);
+  if (!parent) {
+    throw new Error("POST_NOT_FOUND");
+  }
+  const skip = (params.page - 1) * params.limit;
+  const { items, total } = await postRepository.findManyByReplyPostId({
+    replyPostId: params.parentPostId,
+    skip,
+    take: params.limit,
+  });
+  const ids = items.map((p) => p.id);
+  const likedIds = await postRepository.findViewerLikedPostIds(
+    params.viewerUserId,
+    ids,
+  );
+  const data: PostReplyItemDto[] = items.map((row) => ({
+    ...mapPost(row),
+    author: mapAuthorWithAvatar(row.UserAccount),
+    likedByMe: likedIds.has(row.id),
+  }));
+  return {
+    data,
     page: params.page,
     limit: params.limit,
     total,
@@ -223,6 +288,7 @@ const postService = {
   getPostById,
   listPostsByUser,
   listSharesOfPost,
+  listPostReplies,
   likePost,
   unlikePost,
   listPostLikers,

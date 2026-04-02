@@ -6,6 +6,7 @@ const router = Router();
 router.post("/", postController.createPost);
 router.get("/user/:userId", postController.listPostsByUser);
 router.get("/:id/shares", postController.listPostShares);
+router.get("/:id/replies", postController.listPostReplies);
 router.get("/:id/likes", postController.listPostLikes);
 router.post("/:id/likes", postController.likePost);
 router.delete("/:id/likes", postController.unlikePost);

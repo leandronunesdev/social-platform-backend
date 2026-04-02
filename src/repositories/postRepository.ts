@@ -4,6 +4,7 @@ const create = async (data: {
   userAccountId: string;
   content: string;
   sharePostId: string | null;
+  replyPostId: string | null;
 }) => {
   return prisma.$transaction(async (tx) => {
     if (data.sharePostId) {
@@ -15,17 +16,33 @@ const create = async (data: {
         throw new Error("SHARE_TARGET_NOT_FOUND");
       }
     }
+    if (data.replyPostId) {
+      const parent = await tx.post.findUnique({
+        where: { id: data.replyPostId },
+        select: { id: true },
+      });
+      if (!parent) {
+        throw new Error("REPLY_TARGET_NOT_FOUND");
+      }
+    }
     const post = await tx.post.create({
       data: {
         userAccountId: data.userAccountId,
         content: data.content,
         sharePostId: data.sharePostId,
+        replyPostId: data.replyPostId,
       },
     });
     if (data.sharePostId) {
       await tx.post.update({
         where: { id: data.sharePostId },
         data: { sharesCount: { increment: 1 } },
+      });
+    }
+    if (data.replyPostId) {
+      await tx.post.update({
+        where: { id: data.replyPostId },
+        data: { repliesCount: { increment: 1 } },
       });
     }
     return post;
@@ -113,6 +130,49 @@ const findManyBySharePostId = async (params: {
   return { items, total };
 };
 
+const findManyByReplyPostId = async (params: {
+  replyPostId: string;
+  skip: number;
+  take: number;
+}) => {
+  const where = { replyPostId: params.replyPostId };
+  const [items, total] = await prisma.$transaction([
+    prisma.post.findMany({
+      where,
+      orderBy: { createdAt: "asc" },
+      skip: params.skip,
+      take: params.take,
+      include: {
+        UserAccount: {
+          select: {
+            ...authorSelect,
+            UserProfile: { select: { avatarUrl: true } },
+          },
+        },
+      },
+    }),
+    prisma.post.count({ where }),
+  ]);
+  return { items, total };
+};
+
+const findViewerLikedPostIds = async (
+  userAccountId: string,
+  postIds: string[],
+): Promise<Set<string>> => {
+  if (postIds.length === 0) {
+    return new Set();
+  }
+  const rows = await prisma.postLike.findMany({
+    where: {
+      userAccountId,
+      postId: { in: postIds },
+    },
+    select: { postId: true },
+  });
+  return new Set(rows.map((r) => r.postId));
+};
+
 const addLike = async (userAccountId: string, postId: string) => {
   return prisma.$transaction(async (tx) => {
     const post = await tx.post.findUnique({ where: { id: postId } });
@@ -192,9 +252,11 @@ const postRepository = {
   findById,
   findByIdWithDetails,
   hasViewerLikedPost,
+  findViewerLikedPostIds,
   update,
   findManyByUserId,
   findManyBySharePostId,
+  findManyByReplyPostId,
   addLike,
   removeLike,
   findLikersByPostId,

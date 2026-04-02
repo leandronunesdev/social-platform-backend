@@ -53,9 +53,13 @@ model Post {
   content       String      @db.VarChar(300)
   sharesCount   Int         @default(0)
   likesCount    Int         @default(0)
+  repliesCount  Int         @default(0)
   sharePostId   String?
   sharedFrom    Post?       @relation("PostShares", fields: [sharePostId], references: [id], onDelete: SetNull)
   shares        Post[]      @relation("PostShares")
+  replyPostId   String?
+  repliedTo     Post?       @relation("PostReplies", fields: [replyPostId], references: [id], onDelete: Cascade)
+  replies       Post[]      @relation("PostReplies")
   likes         PostLike[]
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt

@@ -86,7 +86,9 @@ const options: swaggerJsdoc.Options = {
             content: { type: "string" },
             sharesCount: { type: "integer" },
             likesCount: { type: "integer" },
+            repliesCount: { type: "integer" },
             sharePostId: { type: "string", nullable: true },
+            replyPostId: { type: "string", nullable: true },
             createdAt: { type: "string", format: "date-time" },
             updatedAt: { type: "string", format: "date-time" },
           },
@@ -107,6 +109,30 @@ const options: swaggerJsdoc.Options = {
             username: { type: "string" },
             name: { type: "string" },
           },
+        },
+        PostAuthorWithAvatar: {
+          allOf: [
+            { $ref: "#/components/schemas/PostAuthor" },
+            {
+              type: "object",
+              properties: {
+                avatarUrl: { type: "string", nullable: true },
+              },
+            },
+          ],
+        },
+        PostReplyItem: {
+          allOf: [
+            { $ref: "#/components/schemas/Post" },
+            {
+              type: "object",
+              required: ["author", "likedByMe"],
+              properties: {
+                author: { $ref: "#/components/schemas/PostAuthorWithAvatar" },
+                likedByMe: { type: "boolean" },
+              },
+            },
+          ],
         },
         PostSnapshot: {
           allOf: [
