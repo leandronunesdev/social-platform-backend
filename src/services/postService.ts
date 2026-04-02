@@ -19,6 +19,34 @@ export type PostLikerDto = {
   likedAt: string;
 };
 
+export type PostAuthorDto = {
+  userId: string;
+  username: string;
+  name: string;
+};
+
+export type PostSnapshotDto = PostDto & {
+  author: PostAuthorDto;
+};
+
+export type PostDetailDto = PostDto & {
+  author: PostAuthorDto;
+  likedByMe: boolean;
+  sharedFrom: PostSnapshotDto | null;
+};
+
+function mapAuthorFromAccount(account: {
+  id: string;
+  name: string;
+  username: string;
+}): PostAuthorDto {
+  return {
+    userId: account.id,
+    username: account.username,
+    name: account.name,
+  };
+}
+
 function mapPost(row: {
   id: string;
   userAccountId: string;
@@ -130,6 +158,40 @@ const unlikePost = async (params: {
   return postRepository.removeLike(params.userAccountId, params.postId);
 };
 
+const getPostById = async (params: {
+  postId: string;
+  viewerUserId: string;
+}): Promise<{ post: PostDetailDto }> => {
+  const row = await postRepository.findByIdWithDetails(params.postId);
+  if (!row) {
+    throw new Error("POST_NOT_FOUND");
+  }
+  const likedByMe = await postRepository.hasViewerLikedPost(
+    params.viewerUserId,
+    params.postId,
+  );
+
+  const author = mapAuthorFromAccount(row.UserAccount);
+
+  let sharedFrom: PostSnapshotDto | null = null;
+  if (row.sharedFrom) {
+    const inner = row.sharedFrom;
+    sharedFrom = {
+      ...mapPost(inner),
+      author: mapAuthorFromAccount(inner.UserAccount),
+    };
+  }
+
+  const post: PostDetailDto = {
+    ...mapPost(row),
+    author,
+    likedByMe,
+    sharedFrom,
+  };
+
+  return { post };
+};
+
 const listPostLikers = async (params: {
   postId: string;
   page: number;
@@ -158,6 +220,7 @@ const listPostLikers = async (params: {
 const postService = {
   createPost,
   updatePost,
+  getPostById,
   listPostsByUser,
   listSharesOfPost,
   likePost,

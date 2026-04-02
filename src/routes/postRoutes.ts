@@ -9,6 +9,7 @@ router.get("/:id/shares", postController.listPostShares);
 router.get("/:id/likes", postController.listPostLikes);
 router.post("/:id/likes", postController.likePost);
 router.delete("/:id/likes", postController.unlikePost);
+router.get("/:id", postController.getPostById);
 router.put("/", postController.rejectPutPostsWithoutId);
 router.put("/:id", postController.updatePost);
 

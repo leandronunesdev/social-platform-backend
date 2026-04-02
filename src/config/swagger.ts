@@ -100,6 +100,47 @@ const options: swaggerJsdoc.Options = {
             likedAt: { type: "string", format: "date-time" },
           },
         },
+        PostAuthor: {
+          type: "object",
+          properties: {
+            userId: { type: "string" },
+            username: { type: "string" },
+            name: { type: "string" },
+          },
+        },
+        PostSnapshot: {
+          allOf: [
+            { $ref: "#/components/schemas/Post" },
+            {
+              type: "object",
+              required: ["author"],
+              properties: {
+                author: { $ref: "#/components/schemas/PostAuthor" },
+              },
+            },
+          ],
+        },
+        PostDetail: {
+          allOf: [
+            { $ref: "#/components/schemas/Post" },
+            {
+              type: "object",
+              required: ["author", "likedByMe"],
+              properties: {
+                author: { $ref: "#/components/schemas/PostAuthor" },
+                likedByMe: { type: "boolean" },
+                sharedFrom: {
+                  oneOf: [
+                    { $ref: "#/components/schemas/PostSnapshot" },
+                    { type: "null" },
+                  ],
+                  description:
+                    "Original post when this is a share; null if not a share or original was deleted.",
+                },
+              },
+            },
+          ],
+        },
       },
     },
   },

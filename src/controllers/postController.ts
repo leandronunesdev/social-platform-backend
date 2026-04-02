@@ -96,7 +96,7 @@ function pathParamString(value: string | string[] | undefined): string {
  *       401:
  *         description: Unauthorized
  *       404:
- *         description: sharePostId does not exist
+ *         description: Original post (sharePostId) does not exist
  *       422:
  *         description: Validation error
  *       500:
@@ -120,7 +120,7 @@ const createPost = async (req: AuthenticatedRequest, res: Response) => {
       return res.status(422).json({ errors: error.issues });
     }
     if (error instanceof Error && error.message === "SHARE_TARGET_NOT_FOUND") {
-      return res.status(404).json({ message: "Shared post not found." });
+      return res.status(404).json({ message: "Original post not found." });
     }
     logRouteError("posts.createPost", error);
     return res
@@ -137,6 +137,78 @@ const rejectPutPostsWithoutId = (_req: AuthenticatedRequest, res: Response) => {
     message:
       'Missing post id in the URL. Use PUT /posts/{postId} (example: PUT /posts/clxyz...) with JSON body { "content": "your text" }. Swagger: fill the path parameter `id` before Execute.',
   });
+};
+
+/**
+ * @swagger
+ * /posts/{id}:
+ *   get:
+ *     summary: Get post by id (with author, likedByMe, optional sharedFrom snapshot)
+ *     tags: [Posts]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           minLength: 1
+ *         description: Post id
+ *     responses:
+ *       200:
+ *         description: Post details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 post:
+ *                   $ref: '#/components/schemas/PostDetail'
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Post not found
+ *       422:
+ *         description: Validation error
+ *       500:
+ *         description: Internal server error
+ */
+const getPostById = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ message: "Authentication required." });
+    }
+    const postId = pathParamString(req.params.id);
+    if (!postId) {
+      return res.status(422).json({
+        errors: [
+          {
+            code: z.ZodIssueCode.custom,
+            message: "Post id is required in the path.",
+            path: ["id"],
+          },
+        ],
+      });
+    }
+    const result = await postService.getPostById({
+      postId,
+      viewerUserId: userId,
+    });
+    return res.status(200).json(result);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(422).json({ errors: error.issues });
+    }
+    if (error instanceof Error && error.message === "POST_NOT_FOUND") {
+      return res.status(404).json({ message: "Post not found." });
+    }
+    logRouteError("posts.getPostById", error);
+    return res
+      .status(500)
+      .json(jsonInternalError(error, "Internal server error."));
+  }
 };
 
 /**
@@ -632,6 +704,7 @@ const unlikePost = async (req: AuthenticatedRequest, res: Response) => {
 const postController = {
   createPost,
   rejectPutPostsWithoutId,
+  getPostById,
   updatePost,
   listPostsByUser,
   listPostShares,

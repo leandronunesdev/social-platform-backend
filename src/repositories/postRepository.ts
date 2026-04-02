@@ -6,6 +6,15 @@ const create = async (data: {
   sharePostId: string | null;
 }) => {
   return prisma.$transaction(async (tx) => {
+    if (data.sharePostId) {
+      const target = await tx.post.findUnique({
+        where: { id: data.sharePostId },
+        select: { id: true },
+      });
+      if (!target) {
+        throw new Error("SHARE_TARGET_NOT_FOUND");
+      }
+    }
     const post = await tx.post.create({
       data: {
         userAccountId: data.userAccountId,
@@ -14,13 +23,10 @@ const create = async (data: {
       },
     });
     if (data.sharePostId) {
-      const updated = await tx.post.updateMany({
+      await tx.post.update({
         where: { id: data.sharePostId },
         data: { sharesCount: { increment: 1 } },
       });
-      if (updated.count === 0) {
-        throw new Error("SHARE_TARGET_NOT_FOUND");
-      }
     }
     return post;
   });
@@ -30,6 +36,38 @@ const findById = async (id: string) => {
   return prisma.post.findUnique({
     where: { id },
   });
+};
+
+const authorSelect = { id: true, name: true, username: true } as const;
+
+const findByIdWithDetails = async (id: string) => {
+  return prisma.post.findUnique({
+    where: { id },
+    include: {
+      UserAccount: {
+        select: authorSelect,
+      },
+      sharedFrom: {
+        include: {
+          UserAccount: {
+            select: authorSelect,
+          },
+        },
+      },
+    },
+  });
+};
+
+const hasViewerLikedPost = async (
+  userAccountId: string,
+  postId: string,
+): Promise<boolean> => {
+  const row = await prisma.postLike.findUnique({
+    where: {
+      userAccountId_postId: { userAccountId, postId },
+    },
+  });
+  return row !== null;
 };
 
 const update = async (params: { id: string; content: string }) => {
@@ -152,6 +190,8 @@ const findLikersByPostId = async (params: {
 const postRepository = {
   create,
   findById,
+  findByIdWithDetails,
+  hasViewerLikedPost,
   update,
   findManyByUserId,
   findManyBySharePostId,
