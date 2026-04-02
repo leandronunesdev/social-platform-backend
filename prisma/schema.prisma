@@ -50,6 +50,10 @@ model Post {
   userAccountId String
   UserAccount   UserAccount @relation(fields: [userAccountId], references: [id], onDelete: Cascade)
   content       String      @db.VarChar(300)
+  sharesCount   Int         @default(0)
+  sharePostId   String?
+  sharedFrom    Post?       @relation("PostShares", fields: [sharePostId], references: [id], onDelete: SetNull)
+  shares        Post[]      @relation("PostShares")
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 }

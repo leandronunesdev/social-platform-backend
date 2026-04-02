@@ -68,6 +68,7 @@ const options: swaggerJsdoc.Options = {
       { name: "Authentication", description: "Accounts, login, profile" },
       { name: "Posts", description: "Create and list posts (JWT required)" },
     ],
+    security: [{ bearerAuth: [] }],
     components: {
       securitySchemes: {
         bearerAuth: {
@@ -83,6 +84,8 @@ const options: swaggerJsdoc.Options = {
             id: { type: "string" },
             userId: { type: "string" },
             content: { type: "string" },
+            sharesCount: { type: "integer" },
+            sharePostId: { type: "string", nullable: true },
             createdAt: { type: "string", format: "date-time" },
             updatedAt: { type: "string", format: "date-time" },
           },

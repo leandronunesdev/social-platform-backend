@@ -5,6 +5,8 @@ export type PostDto = {
   id: string;
   userId: string;
   content: string;
+  sharesCount: number;
+  sharePostId: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -13,6 +15,8 @@ function mapPost(row: {
   id: string;
   userAccountId: string;
   content: string;
+  sharesCount: number;
+  sharePostId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }): PostDto {
@@ -20,16 +24,23 @@ function mapPost(row: {
     id: row.id,
     userId: row.userAccountId,
     content: row.content,
+    sharesCount: row.sharesCount,
+    sharePostId: row.sharePostId,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
 }
 
-const createPost = async (
-  userAccountId: string,
-  content: string,
-): Promise<PostDto> => {
-  const row = await postRepository.create({ userAccountId, content });
+const createPost = async (params: {
+  userAccountId: string;
+  content: string;
+  sharePostId?: string | undefined;
+}): Promise<PostDto> => {
+  const row = await postRepository.create({
+    userAccountId: params.userAccountId,
+    content: params.content,
+    sharePostId: params.sharePostId ?? null,
+  });
   return mapPost(row);
 };
 
@@ -75,10 +86,34 @@ const listPostsByUser = async (params: {
   };
 };
 
+const listSharesOfPost = async (params: {
+  sharePostId: string;
+  page: number;
+  limit: number;
+}) => {
+  const original = await postRepository.findById(params.sharePostId);
+  if (!original) {
+    throw new Error("POST_NOT_FOUND");
+  }
+  const skip = (params.page - 1) * params.limit;
+  const { items, total } = await postRepository.findManyBySharePostId({
+    sharePostId: params.sharePostId,
+    skip,
+    take: params.limit,
+  });
+  return {
+    data: items.map(mapPost),
+    page: params.page,
+    limit: params.limit,
+    total,
+  };
+};
+
 const postService = {
   createPost,
   updatePost,
   listPostsByUser,
+  listSharesOfPost,
 };
 
 export { postService };

@@ -6,7 +6,12 @@ import cors from "cors";
 import swaggerUi from "swagger-ui-express";
 import { buildSwaggerSpec } from "./config/swagger";
 import { prisma } from "./lib/prisma";
-import { jsonInternalError, logRouteError } from "./utils/routeError";
+import {
+  isInvalidJsonBodyError,
+  jsonInternalError,
+  logRouteError,
+  respondInvalidJsonBody,
+} from "./utils/routeError";
 import authRoutes from "./routes/authRoutes";
 import postRoutes from "./routes/postRoutes";
 import { authenticateToken } from "./middlewares/authMiddleware";
@@ -72,6 +77,7 @@ const PORT = process.env.PORT || 4000;
  *   get:
  *     summary: Health check endpoint
  *     tags: [Health]
+ *     security: []
  *     responses:
  *       200:
  *         description: Server is running
@@ -103,6 +109,10 @@ app.use(
     res: express.Response,
     _next: express.NextFunction,
   ) => {
+    if (isInvalidJsonBodyError(err)) {
+      logRouteError("expressErrorHandler:invalidJsonBody", err);
+      return respondInvalidJsonBody(res, err);
+    }
     logRouteError("expressErrorHandler", err);
     res
       .status(500)
