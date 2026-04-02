@@ -94,6 +94,47 @@ const update = async (params: { id: string; content: string }) => {
   });
 };
 
+const removeById = async (id: string) => {
+  return prisma.$transaction(async (tx) => {
+    const post = await tx.post.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        sharePostId: true,
+        replyPostId: true,
+      },
+    });
+    if (!post) {
+      throw new Error("POST_NOT_FOUND");
+    }
+    if (post.sharePostId) {
+      const original = await tx.post.findUnique({
+        where: { id: post.sharePostId },
+        select: { id: true, sharesCount: true },
+      });
+      if (original && original.sharesCount > 0) {
+        await tx.post.update({
+          where: { id: post.sharePostId },
+          data: { sharesCount: { decrement: 1 } },
+        });
+      }
+    }
+    if (post.replyPostId) {
+      const parent = await tx.post.findUnique({
+        where: { id: post.replyPostId },
+        select: { id: true, repliesCount: true },
+      });
+      if (parent && parent.repliesCount > 0) {
+        await tx.post.update({
+          where: { id: post.replyPostId },
+          data: { repliesCount: { decrement: 1 } },
+        });
+      }
+    }
+    await tx.post.delete({ where: { id } });
+  });
+};
+
 const findManyByUserId = async (params: {
   userAccountId: string;
   skip: number;
@@ -254,6 +295,7 @@ const postRepository = {
   hasViewerLikedPost,
   findViewerLikedPostIds,
   update,
+  removeById,
   findManyByUserId,
   findManyBySharePostId,
   findManyByReplyPostId,

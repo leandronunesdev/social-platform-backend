@@ -132,6 +132,20 @@ const updatePost = async (params: {
   return mapPost(row);
 };
 
+const deletePost = async (params: {
+  postId: string;
+  userAccountId: string;
+}): Promise<void> => {
+  const existing = await postRepository.findById(params.postId);
+  if (!existing) {
+    throw new Error("POST_NOT_FOUND");
+  }
+  if (existing.userAccountId !== params.userAccountId) {
+    throw new Error("POST_FORBIDDEN");
+  }
+  await postRepository.removeById(params.postId);
+};
+
 const listPostsByUser = async (params: {
   userAccountId: string;
   page: number;
@@ -285,6 +299,7 @@ const listPostLikers = async (params: {
 const postService = {
   createPost,
   updatePost,
+  deletePost,
   getPostById,
   listPostsByUser,
   listSharesOfPost,

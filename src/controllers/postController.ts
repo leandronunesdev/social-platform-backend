@@ -324,6 +324,76 @@ const updatePost = async (req: AuthenticatedRequest, res: Response) => {
 
 /**
  * @swagger
+ * /posts/{id}:
+ *   delete:
+ *     summary: Delete own post
+ *     description: Removes the post, its likes, and direct replies (cascade). Decrements sharesCount on the original when deleting a share, and repliesCount on the parent when deleting a reply.
+ *     tags: [Posts]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           minLength: 1
+ *     responses:
+ *       204:
+ *         description: Post deleted
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Not the post owner
+ *       404:
+ *         description: Post not found
+ *       422:
+ *         description: Missing post id
+ *       500:
+ *         description: Internal server error
+ */
+const deletePost = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ message: "Authentication required." });
+    }
+    const postId = pathParamString(req.params.id);
+    if (!postId) {
+      return res.status(422).json({
+        errors: [
+          {
+            code: z.ZodIssueCode.custom,
+            message: "Post id is required in the path.",
+            path: ["id"],
+          },
+        ],
+      });
+    }
+    await postService.deletePost({
+      postId,
+      userAccountId: userId,
+    });
+    return res.status(204).send();
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(422).json({ errors: error.issues });
+    }
+    if (error instanceof Error && error.message === "POST_NOT_FOUND") {
+      return res.status(404).json({ message: "Post not found." });
+    }
+    if (error instanceof Error && error.message === "POST_FORBIDDEN") {
+      return res.status(403).json({ message: "You can only delete your own posts." });
+    }
+    logRouteError("posts.deletePost", error);
+    return res
+      .status(500)
+      .json(jsonInternalError(error, "Internal server error."));
+  }
+};
+
+/**
+ * @swagger
  * /posts/user/{userId}:
  *   get:
  *     summary: List posts by user
@@ -821,6 +891,7 @@ const postController = {
   rejectPutPostsWithoutId,
   getPostById,
   updatePost,
+  deletePost,
   listPostsByUser,
   listPostShares,
   listPostReplies,
