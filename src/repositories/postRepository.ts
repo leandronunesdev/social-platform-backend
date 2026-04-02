@@ -75,12 +75,89 @@ const findManyBySharePostId = async (params: {
   return { items, total };
 };
 
+const addLike = async (userAccountId: string, postId: string) => {
+  return prisma.$transaction(async (tx) => {
+    const post = await tx.post.findUnique({ where: { id: postId } });
+    if (!post) {
+      throw new Error("POST_NOT_FOUND");
+    }
+    const existing = await tx.postLike.findUnique({
+      where: {
+        userAccountId_postId: { userAccountId, postId },
+      },
+    });
+    if (existing) {
+      return { likesCount: post.likesCount };
+    }
+    await tx.postLike.create({
+      data: { userAccountId, postId },
+    });
+    const updated = await tx.post.update({
+      where: { id: postId },
+      data: { likesCount: { increment: 1 } },
+    });
+    return { likesCount: updated.likesCount };
+  });
+};
+
+const removeLike = async (userAccountId: string, postId: string) => {
+  return prisma.$transaction(async (tx) => {
+    const post = await tx.post.findUnique({ where: { id: postId } });
+    if (!post) {
+      throw new Error("POST_NOT_FOUND");
+    }
+    const removed = await tx.postLike.deleteMany({
+      where: { userAccountId, postId },
+    });
+    if (removed.count === 0) {
+      return { likesCount: post.likesCount };
+    }
+    const nextCount = Math.max(0, post.likesCount - 1);
+    const updated = await tx.post.update({
+      where: { id: postId },
+      data: { likesCount: nextCount },
+    });
+    return { likesCount: updated.likesCount };
+  });
+};
+
+const findLikersByPostId = async (params: {
+  postId: string;
+  skip: number;
+  take: number;
+}) => {
+  const post = await prisma.post.findUnique({
+    where: { id: params.postId },
+  });
+  if (!post) {
+    throw new Error("POST_NOT_FOUND");
+  }
+  const [rows, total] = await prisma.$transaction([
+    prisma.postLike.findMany({
+      where: { postId: params.postId },
+      orderBy: { createdAt: "desc" },
+      skip: params.skip,
+      take: params.take,
+      include: {
+        UserAccount: {
+          select: { id: true, name: true, username: true },
+        },
+      },
+    }),
+    prisma.postLike.count({ where: { postId: params.postId } }),
+  ]);
+  return { rows, total };
+};
+
 const postRepository = {
   create,
   findById,
   update,
   findManyByUserId,
   findManyBySharePostId,
+  addLike,
+  removeLike,
+  findLikersByPostId,
 };
 
 export { postRepository };

@@ -43,6 +43,7 @@ model UserAccount {
   UserProfile           UserProfile?
   passwordResetRequests PasswordResetRequest[]
   posts                 Post[]
+  postLikes             PostLike[]
 }
 
 model Post {
@@ -51,11 +52,24 @@ model Post {
   UserAccount   UserAccount @relation(fields: [userAccountId], references: [id], onDelete: Cascade)
   content       String      @db.VarChar(300)
   sharesCount   Int         @default(0)
+  likesCount    Int         @default(0)
   sharePostId   String?
   sharedFrom    Post?       @relation("PostShares", fields: [sharePostId], references: [id], onDelete: SetNull)
   shares        Post[]      @relation("PostShares")
+  likes         PostLike[]
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
+}
+
+model PostLike {
+  id            String      @id @default(cuid())
+  userAccountId String
+  postId        String
+  UserAccount   UserAccount @relation(fields: [userAccountId], references: [id], onDelete: Cascade)
+  Post          Post        @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt     DateTime    @default(now())
+
+  @@unique([userAccountId, postId])
 }
 
 model UserProfile {

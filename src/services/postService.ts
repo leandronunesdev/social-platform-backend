@@ -6,9 +6,17 @@ export type PostDto = {
   userId: string;
   content: string;
   sharesCount: number;
+  likesCount: number;
   sharePostId: string | null;
   createdAt: string;
   updatedAt: string;
+};
+
+export type PostLikerDto = {
+  userId: string;
+  username: string;
+  name: string;
+  likedAt: string;
 };
 
 function mapPost(row: {
@@ -16,6 +24,7 @@ function mapPost(row: {
   userAccountId: string;
   content: string;
   sharesCount: number;
+  likesCount: number;
   sharePostId: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -25,6 +34,7 @@ function mapPost(row: {
     userId: row.userAccountId,
     content: row.content,
     sharesCount: row.sharesCount,
+    likesCount: row.likesCount,
     sharePostId: row.sharePostId,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
@@ -109,11 +119,50 @@ const listSharesOfPost = async (params: {
   };
 };
 
+const likePost = async (params: { postId: string; userAccountId: string }) => {
+  return postRepository.addLike(params.userAccountId, params.postId);
+};
+
+const unlikePost = async (params: {
+  postId: string;
+  userAccountId: string;
+}) => {
+  return postRepository.removeLike(params.userAccountId, params.postId);
+};
+
+const listPostLikers = async (params: {
+  postId: string;
+  page: number;
+  limit: number;
+}) => {
+  const skip = (params.page - 1) * params.limit;
+  const { rows, total } = await postRepository.findLikersByPostId({
+    postId: params.postId,
+    skip,
+    take: params.limit,
+  });
+  const data: PostLikerDto[] = rows.map((row) => ({
+    userId: row.UserAccount.id,
+    username: row.UserAccount.username,
+    name: row.UserAccount.name,
+    likedAt: row.createdAt.toISOString(),
+  }));
+  return {
+    data,
+    page: params.page,
+    limit: params.limit,
+    total,
+  };
+};
+
 const postService = {
   createPost,
   updatePost,
   listPostsByUser,
   listSharesOfPost,
+  likePost,
+  unlikePost,
+  listPostLikers,
 };
 
 export { postService };

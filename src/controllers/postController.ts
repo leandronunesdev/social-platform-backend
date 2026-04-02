@@ -409,12 +409,235 @@ const listPostShares = async (req: AuthenticatedRequest, res: Response) => {
   }
 };
 
+/**
+ * @swagger
+ * /posts/{id}/likes:
+ *   get:
+ *     summary: List users who liked a post
+ *     tags: [Posts]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           minLength: 1
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 20
+ *     responses:
+ *       200:
+ *         description: Paginated likers (newest like first)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/PostLiker'
+ *                 page: { type: integer }
+ *                 limit: { type: integer }
+ *                 total: { type: integer }
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Post not found
+ *       422:
+ *         description: Validation error
+ *       500:
+ *         description: Internal server error
+ *   post:
+ *     summary: Like a post (idempotent)
+ *     tags: [Posts]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           minLength: 1
+ *     responses:
+ *       200:
+ *         description: Liked (or already liked)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 likesCount:
+ *                   type: integer
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Post not found
+ *       500:
+ *         description: Internal server error
+ *   delete:
+ *     summary: Unlike a post (idempotent)
+ *     tags: [Posts]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           minLength: 1
+ *     responses:
+ *       200:
+ *         description: Unliked (or was not liked)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 likesCount:
+ *                   type: integer
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Post not found
+ *       500:
+ *         description: Internal server error
+ */
+const listPostLikes = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.userId) {
+      return res.status(401).json({ message: "Authentication required." });
+    }
+    const postId = pathParamString(req.params.id);
+    if (!postId) {
+      return res.status(422).json({
+        errors: [
+          {
+            code: z.ZodIssueCode.custom,
+            message: "Post id is required in the path.",
+            path: ["id"],
+          },
+        ],
+      });
+    }
+    const query = PaginationQuerySchema.parse(req.query);
+    const result = await postService.listPostLikers({
+      postId,
+      page: query.page,
+      limit: query.limit,
+    });
+    return res.status(200).json(result);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(422).json({ errors: error.issues });
+    }
+    if (error instanceof Error && error.message === "POST_NOT_FOUND") {
+      return res.status(404).json({ message: "Post not found." });
+    }
+    logRouteError("posts.listPostLikes", error);
+    return res
+      .status(500)
+      .json(jsonInternalError(error, "Internal server error."));
+  }
+};
+
+const likePost = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ message: "Authentication required." });
+    }
+    const postId = pathParamString(req.params.id);
+    if (!postId) {
+      return res.status(422).json({
+        errors: [
+          {
+            code: z.ZodIssueCode.custom,
+            message: "Post id is required in the path.",
+            path: ["id"],
+          },
+        ],
+      });
+    }
+    const result = await postService.likePost({
+      postId,
+      userAccountId: userId,
+    });
+    return res.status(200).json(result);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(422).json({ errors: error.issues });
+    }
+    if (error instanceof Error && error.message === "POST_NOT_FOUND") {
+      return res.status(404).json({ message: "Post not found." });
+    }
+    logRouteError("posts.likePost", error);
+    return res
+      .status(500)
+      .json(jsonInternalError(error, "Internal server error."));
+  }
+};
+
+const unlikePost = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ message: "Authentication required." });
+    }
+    const postId = pathParamString(req.params.id);
+    if (!postId) {
+      return res.status(422).json({
+        errors: [
+          {
+            code: z.ZodIssueCode.custom,
+            message: "Post id is required in the path.",
+            path: ["id"],
+          },
+        ],
+      });
+    }
+    const result = await postService.unlikePost({
+      postId,
+      userAccountId: userId,
+    });
+    return res.status(200).json(result);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(422).json({ errors: error.issues });
+    }
+    if (error instanceof Error && error.message === "POST_NOT_FOUND") {
+      return res.status(404).json({ message: "Post not found." });
+    }
+    logRouteError("posts.unlikePost", error);
+    return res
+      .status(500)
+      .json(jsonInternalError(error, "Internal server error."));
+  }
+};
+
 const postController = {
   createPost,
   rejectPutPostsWithoutId,
   updatePost,
   listPostsByUser,
   listPostShares,
+  listPostLikes,
+  likePost,
+  unlikePost,
 };
 
 export { postController };
