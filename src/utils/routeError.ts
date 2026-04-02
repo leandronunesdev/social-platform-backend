@@ -1,3 +1,4 @@
+import type { Response } from "express";
 import { Prisma } from "@prisma/client";
 
 /** When `true`, 500 responses include a `debug` object (disable after fixing prod issues). */
@@ -38,7 +39,9 @@ function formatErrorForLog(error: unknown): string {
 }
 
 /** Safe structured detail for JSON when DEBUG_API_ERRORS=true (no stack). */
-export function serializeErrorForDebug(error: unknown): Record<string, unknown> {
+export function serializeErrorForDebug(
+  error: unknown,
+): Record<string, unknown> {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     return {
       kind: "PrismaClientKnownRequestError",
@@ -64,6 +67,36 @@ export function serializeErrorForDebug(error: unknown): Record<string, unknown> 
     return { kind: error.name, message: error.message };
   }
   return { kind: "unknown", message: String(error) };
+}
+
+export function isInvalidJsonBodyError(err: unknown): boolean {
+  if (err instanceof SyntaxError) {
+    const m = err.message;
+    return /JSON|position|Unexpected|Expected/i.test(m);
+  }
+  if (err && typeof err === "object") {
+    const e = err as { type?: string; statusCode?: number; status?: number };
+    if (e.type === "entity.parse.failed") {
+      return true;
+    }
+    const code = e.statusCode ?? e.status;
+    if (code === 400 && err instanceof Error) {
+      return /JSON|position|Unexpected|Expected/i.test(err.message);
+    }
+  }
+  return false;
+}
+
+export function respondInvalidJsonBody(res: Response, err: unknown): void {
+  const parserMessage = err instanceof Error ? err.message : undefined;
+  const body: { message: string; debug?: { parserMessage: string } } = {
+    message:
+      "Request body is not valid JSON. Use double-quoted strings, no trailing commas after the last property, and Content-Type: application/json.",
+  };
+  if (isDebugApiErrors() && parserMessage) {
+    body.debug = { parserMessage };
+  }
+  res.status(400).json(body);
 }
 
 /** Body for generic 500 responses. */

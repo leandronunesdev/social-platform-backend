@@ -42,6 +42,38 @@ model UserAccount {
   isDeleted             Boolean                @default(false)
   UserProfile           UserProfile?
   passwordResetRequests PasswordResetRequest[]
+  posts                 Post[]
+  postLikes             PostLike[]
+}
+
+model Post {
+  id            String      @id @default(cuid())
+  userAccountId String
+  UserAccount   UserAccount @relation(fields: [userAccountId], references: [id], onDelete: Cascade)
+  content       String      @db.VarChar(300)
+  sharesCount   Int         @default(0)
+  likesCount    Int         @default(0)
+  repliesCount  Int         @default(0)
+  sharePostId   String?
+  sharedFrom    Post?       @relation("PostShares", fields: [sharePostId], references: [id], onDelete: SetNull)
+  shares        Post[]      @relation("PostShares")
+  replyPostId   String?
+  repliedTo     Post?       @relation("PostReplies", fields: [replyPostId], references: [id], onDelete: Cascade)
+  replies       Post[]      @relation("PostReplies")
+  likes         PostLike[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model PostLike {
+  id            String      @id @default(cuid())
+  userAccountId String
+  postId        String
+  UserAccount   UserAccount @relation(fields: [userAccountId], references: [id], onDelete: Cascade)
+  Post          Post        @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt     DateTime    @default(now())
+
+  @@unique([userAccountId, postId])
 }
 
 model UserProfile {

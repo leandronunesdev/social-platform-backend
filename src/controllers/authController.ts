@@ -20,6 +20,7 @@ const RegisterAccountSchema = z.object({
  *   post:
  *     summary: Register a new user account
  *     tags: [Authentication]
+ *     security: []
  *     requestBody:
  *       required: true
  *       content:
@@ -213,6 +214,7 @@ const LoginSchema = z.object({
  *   post:
  *     summary: Login with email and password
  *     tags: [Authentication]
+ *     security: []
  *     requestBody:
  *       required: true
  *       content:
@@ -291,6 +293,7 @@ const PasswordResetSchema = z.object({
  *   post:
  *     summary: Request a password reset code
  *     tags: [Authentication]
+ *     security: []
  *     requestBody:
  *       required: true
  *       content:
@@ -402,6 +405,7 @@ const passwordResetErrorHandler = (error: unknown, res: Response) => {
  *   post:
  *     summary: Validate password reset code
  *     tags: [Authentication]
+ *     security: []
  *     requestBody:
  *       required: true
  *       content:
@@ -474,6 +478,7 @@ const NewPasswordSchema = z.object({
  *   post:
  *     summary: Set new password after reset code validation
  *     tags: [Authentication]
+ *     security: []
  *     requestBody:
  *       required: true
  *       content:

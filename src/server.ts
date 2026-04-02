@@ -4,10 +4,17 @@ dotenv.config();
 import express from "express";
 import cors from "cors";
 import swaggerUi from "swagger-ui-express";
-import { swaggerSpec } from "./config/swagger";
+import { buildSwaggerSpec } from "./config/swagger";
 import { prisma } from "./lib/prisma";
-import { jsonInternalError, logRouteError } from "./utils/routeError";
+import {
+  isInvalidJsonBodyError,
+  jsonInternalError,
+  logRouteError,
+  respondInvalidJsonBody,
+} from "./utils/routeError";
 import authRoutes from "./routes/authRoutes";
+import postRoutes from "./routes/postRoutes";
+import { authenticateToken } from "./middlewares/authMiddleware";
 
 const app = express();
 
@@ -47,10 +54,20 @@ app.use(
 
 app.use(express.json());
 
-app.get("/api-docs.json", (_req, res) => res.json(swaggerSpec));
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.get("/api-docs.json", (_req, res) => res.json(buildSwaggerSpec()));
+app.use(
+  "/api-docs",
+  swaggerUi.serve,
+  swaggerUi.setup(undefined, {
+    swaggerUrl: "/api-docs.json",
+    swaggerOptions: {
+      persistAuthorization: true,
+    },
+  }),
+);
 
 app.use("/auth", authRoutes);
+app.use("/posts", authenticateToken, postRoutes);
 
 const PORT = process.env.PORT || 4000;
 
@@ -60,6 +77,7 @@ const PORT = process.env.PORT || 4000;
  *   get:
  *     summary: Health check endpoint
  *     tags: [Health]
+ *     security: []
  *     responses:
  *       200:
  *         description: Server is running
@@ -91,6 +109,10 @@ app.use(
     res: express.Response,
     _next: express.NextFunction,
   ) => {
+    if (isInvalidJsonBodyError(err)) {
+      logRouteError("expressErrorHandler:invalidJsonBody", err);
+      return respondInvalidJsonBody(res, err);
+    }
     logRouteError("expressErrorHandler", err);
     res
       .status(500)

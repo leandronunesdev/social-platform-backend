@@ -1,0 +1,18 @@
+import { Router } from "express";
+import { postController } from "../controllers/postController";
+
+const router = Router();
+
+router.post("/", postController.createPost);
+router.get("/user/:userId", postController.listPostsByUser);
+router.get("/:id/shares", postController.listPostShares);
+router.get("/:id/replies", postController.listPostReplies);
+router.get("/:id/likes", postController.listPostLikes);
+router.post("/:id/likes", postController.likePost);
+router.delete("/:id/likes", postController.unlikePost);
+router.get("/:id", postController.getPostById);
+router.put("/", postController.rejectPutPostsWithoutId);
+router.put("/:id", postController.updatePost);
+router.delete("/:id", postController.deletePost);
+
+export default router;
